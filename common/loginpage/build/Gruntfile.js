@@ -46,7 +46,7 @@ module.exports = function(grunt) {
                 overwrite: true,
                 replacements: [{
                     from: /__COMPANY_NAME__/g,
-                    to: process.env.COMPANY_NAME || 'Euro-Office'
+                    to: process.env.COMPANY_NAME || 'CenOffice'
                 }]
             }
         }

@@ -1,7 +1,7 @@
 {
     "name": "desktop-editor-start-page",
     "version": "0.1.2",
-    "homepage": "https://github.com/Euro-Office",
+    "homepage": "https://github.com/workplace4cm",
     "private": true,
     "dependencies": {
         "grunt": "~0.4.2",

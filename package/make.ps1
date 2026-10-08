@@ -2,7 +2,7 @@
     [System.Version]$Version = "0.0.0.0",
     [string]$Arch = "x64",
     [string]$Target,
-    [string]$CompanyName = "Euro-Office",
+    [string]$CompanyName = "CenOffice",
     [string]$ProductName = "DesktopEditors",
     [string]$SourceDir,
     [string]$BuildDir,
