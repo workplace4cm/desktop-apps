@@ -134,7 +134,11 @@ $(document).ready(function() {
         CommonEvents.fire("portal:create");
     });
 
-    if (!window.config.portals.checklist) {
+    // cloud providers and online templates are not bundled in Secure Office Suite
+    if ( !window.ControllerTemplates )
+        hideAction('templates');
+
+    if (!(window.config && window.config.portals && window.config.portals.checklist)) {
         $('.tools-connect').hide();
         hideAction('connect');
         console.log('There are no cloud providers');
