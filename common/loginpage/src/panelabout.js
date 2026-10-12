@@ -146,7 +146,7 @@
                 }
 
                 if (args.opts) {
-                    !args.opts.site && (args.opts.site = utils.skipUrlProtocol(args.opts.link));
+                    !args.opts.site && !!args.opts.link && (args.opts.site = utils.skipUrlProtocol(args.opts.link));
                 }
 
                 if (!this.view) {
