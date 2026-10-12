@@ -46,6 +46,7 @@
 #include <QPrinterInfo>
 #include <QProcess>
 #include "cascapplicationmanagerwrapper.h"
+#include "clogger.h"
 #include "qdpichecker.h"
 #include "common/File.h"
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
@@ -392,29 +393,65 @@ QString Utils::systemLocationCode()
 #endif
 }
 
+namespace {
+// Files that run code when "opened". A link in a document must never launch
+// one, even if it sits right next to the document.
+bool isLaunchableFile(const QString &path)
+{
+    static const QStringList blocked = {
+        "exe","com","bat","cmd","scr","pif","cpl","msi","msp","msc","ps1","psm1",
+        "vbs","vbe","js","jse","wsf","wsh","hta","lnk","url","reg","inf","jar",
+        "appref-ms","application","gadget","settingcontent-ms","library-ms",
+        "desktop","sh","bash","run","bin","appimage","py","pl","rb","command","so","dll"
+    };
+    QFileInfo info(path);
+    if (blocked.contains(info.suffix().toLower()))
+        return true;
+#ifndef _WIN32
+    if (info.isFile() && info.isExecutable())
+        return true;
+#endif
+    return false;
+}
+}
+
 void Utils::openUrl(const QString& url)
 {
-#ifdef __linux
-    QUrl _url(url);
-    if ( _url.scheme() == "mailto" ) {
-        system(QString("LD_LIBRARY_PATH='' xdg-email %1")                   // xdg-email filepath email
-                            .arg(QString( _url.toEncoded() )).toUtf8());
-    } else {
-		if (url.startsWith("xdg:")) {
-			// url is already encoded for xdg
-			std::wstring sUrlW = url.toStdWString().substr(4);
-			std::string sCommand = "LD_LIBRARY_PATH='' xdg-open " + U_TO_UTF8(sUrlW);
-			system(sCommand.c_str());
-		} else {
-			// xdg-open workingpath path
-			system(QString("LD_LIBRARY_PATH='' xdg-open \"%1\"")
-			       .arg(QString( _url.toEncoded() )).toUtf8());
+    // Every link the editors ask to open ends up here: hyperlinks in
+    // documents, popups, and "show in folder" for downloads. Only web, mail
+    // and harmless local files are opened; everything else (custom URL
+    // handlers, network shares, executables) is refused.
+    QString _str = url;
+    if (_str.startsWith("xdg:"))
+        _str = _str.mid(4);     // local path, already percent-encoded for xdg
 
+    const QUrl _url(_str);
+    const QString _scheme = _url.scheme().toLower();
 
-		}
+    if (_scheme == "file") {
+        if (!_url.host().isEmpty() || _str.startsWith("\\\\") ||
+                _url.toLocalFile().startsWith("//") || isLaunchableFile(_url.toLocalFile()))
+        {
+            CLogger::log("openUrl: refused " + _str);
+            return;
+        }
+    } else
+    if (_scheme != "http" && _scheme != "https" && _scheme != "mailto") {
+        CLogger::log("openUrl: refused " + _str);
+        return;
     }
+
+#ifdef __linux
+    // Arguments go straight to the program, never through a shell.
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    env.remove("LD_LIBRARY_PATH");
+    QProcess proc;
+    proc.setProgram(_scheme == "mailto" ? "xdg-email" : "xdg-open");
+    proc.setArguments({QString(_url.toEncoded())});
+    proc.setProcessEnvironment(env);
+    proc.startDetached();
 #else
-    QDesktopServices::openUrl(QUrl(url));
+    QDesktopServices::openUrl(_url);
 #endif
 }
 

@@ -43,6 +43,7 @@
 #include <vector>
 #include <QGuiApplication>
 #include <QDebug>
+#include <QFile>
 
 
 int main( int argc, char *argv[] )
@@ -228,6 +229,12 @@ int main( int argc, char *argv[] )
     CApplicationCEF::Prepare(new_argc, new_argv);
     CApplicationCEF* application_cef = new CApplicationCEF();
     setup_paths(&AscAppManager::getInstance());
+#ifndef _WIN32
+    // Cookies and autosaved copies of open documents live here: keep them
+    // readable by this user only.
+    Utils::makepath(user_data_path);
+    QFile::setPermissions(user_data_path, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner);
+#endif
     application_cef->Init_CEF(&AscAppManager::getInstance(), new_argc, new_argv);
     /* ********************** */
 

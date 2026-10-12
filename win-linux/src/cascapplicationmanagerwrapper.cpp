@@ -1,5 +1,6 @@
 
 #include "cascapplicationmanagerwrapper.h"
+#include "clogger.h"
 #include "cascapplicationmanagerwrapperintf.h"
 
 #include <QMutexLocker>
@@ -911,11 +912,7 @@ void CAscApplicationManagerWrapper::handleInputCmd(const std::vector<wstring>& v
     std::vector<COpenOptions> list_failed;
 //    bool open_in_new_window = std::find(vargs.begin(), vargs.end(), L"--force-use-tab") == std::end(vargs);
     bool open_in_new_window = _app.m_private->preferOpenEditorWindow() || (std::find(vargs.begin(), vargs.end(), L"--force-use-window") != std::end(vargs));
-    std::vector<std::wstring> open_scheme{L"http://",L"https://"};
     std::wstring app_scheme = _app.GetExternalSchemeName();
-    if ( !app_scheme.empty() ) {
-        open_scheme.push_back(app_scheme);
-    }
     std::wstring app_action = app_scheme + L"//action";
     std::wstring app_action_open = app_scheme + L"//open";
     std::wstring app_action_plugin = app_scheme + L"//action|install-plugin";
@@ -961,10 +958,9 @@ void CAscApplicationManagerWrapper::handleInputCmd(const std::vector<wstring>& v
                 argScheme.pop_back();
 
             if ( argScheme.rfind(app_action_plugin, 0) == 0 ) {
-                std::wstring _plugin_name = argScheme.substr(app_action_plugin.size() + 1);
-                if ( !_plugin_name.empty() ) {
-                    _app.InstallPluginFromStore(_plugin_name);
-                }
+                // Any web page can fire this link, so it must not install
+                // code. Plugin installation from the store is disabled.
+                CLogger::log("refused deep link plugin install");
             } else {
                 vec_window_actions.push_back(argScheme);
             }
@@ -972,10 +968,10 @@ void CAscApplicationManagerWrapper::handleInputCmd(const std::vector<wstring>& v
             continue;
         } else
         if ( arg.rfind(app_action_open, 0) == 0 ) {
-            std::wstring deep_link = arg;
-            Utils::replaceAll(deep_link, L"%7C", L"|");
-            open_opts.wurl = deep_link;
-            open_opts.name = QString::fromStdWString(get_file_name_from_open_deeplink(deep_link));
+            // Deep links open documents from remote servers in an editor
+            // view; this build only opens local files.
+            CLogger::log("refused deep link open");
+            continue;
         } else
         if ( arg.rfind(app_command, 0) == 0 ) {
             vec_window_actions.push_back(arg);
@@ -1030,9 +1026,11 @@ void CAscApplicationManagerWrapper::handleInputCmd(const std::vector<wstring>& v
                     open_opts.format = open_opts.format = AVS_OFFICESTUDIO_FILE_DOCUMENT_DOCX;
                     open_opts.name = AscAppManager::newFileName(open_opts.format);
                 }
-            } else
-            if ( check_params(open_opts.wurl, open_scheme) < 0 )
+            } else {
+                // Not a local file: web addresses and app-scheme links are not
+                // opened in an editor, since that page would get native access.
                 continue;
+            }
         }
 
         if ( open_in_new_window ) {
