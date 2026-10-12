@@ -1,4 +1,4 @@
-$PackageName = "CenOffice Desktop Editors"
+$PackageName = "Secure Office Suite"
 $BuildDir = "build"
 $DesktopDir = "DesktopEditors"
 

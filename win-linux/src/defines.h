@@ -32,34 +32,34 @@
 #define reCmdLang           "--(keep)?lang[:|=](\\w{2,5})"
 
 #define APP_NAME "DesktopEditors"
-#define APP_TITLE "CenOffice"
+#define APP_TITLE "Secure Office Suite"
 #ifdef __linux
-# define APP_DATA_PATH "/cenoffice/desktopeditors"
-# define REG_GROUP_KEY "cenoffice"
-# define APP_MUTEX_NAME "cenoffice:editors"
-# define DESKTOP_FILE_NAME "cenoffice-desktopeditors"
+# define APP_DATA_PATH "/secure-office-suite/desktopeditors"
+# define REG_GROUP_KEY "secure-office-suite"
+# define APP_MUTEX_NAME "secure-office-suite:editors"
+# define DESKTOP_FILE_NAME "secure-office-suite-desktopeditors"
 #else
-# define APP_DATA_PATH "/CenOffice/DesktopEditors"
-# define APP_REG_NAME  "CenOffice"
-# define REG_GROUP_KEY "CenOffice"
-# define REG_UNINST_KEY "CenOffice Desktop Editors"
-# define APP_MUTEX_NAME "CenOffice"
+# define APP_DATA_PATH "/Secure Office Suite/DesktopEditors"
+# define APP_REG_NAME  "Secure Office Suite"
+# define REG_GROUP_KEY "Secure Office Suite"
+# define REG_UNINST_KEY "Secure Office Suite Desktop Editors"
+# define APP_MUTEX_NAME "SecureOfficeSuite"
 #endif
 
-#define WINDOW_NAME "CenOffice"
+#define WINDOW_NAME "Secure Office Suite"
 #define WINDOW_TITLE WINDOW_NAME
 #define WINDOW_CLASS_NAME L"DocEditorsWindowClass"
 #define WINDOW_EDITOR_CLASS_NAME L"SingleWindowClass"
 #define REG_APP_NAME "DesktopEditors"
 #define APP_DEFAULT_LOCALE "en-US"
 #define APP_DEFAULT_SYSTEM_LOCALE 1
-#define APP_USER_MODEL_ID "CenOffice.Documents.1"
-#define APP_SIMPLE_WINDOW_TITLE "CenOffice Editor"
+#define APP_USER_MODEL_ID "SecureOfficeSuite.Documents.1"
+#define APP_SIMPLE_WINDOW_TITLE "Secure Office Suite Editor"
 #define APP_PROTOCOL "oo-office"
-#define FILE_PREFIX "cenoffice_"
+#define FILE_PREFIX "secureoffice_"
 
-#define URL_SITE                "https://github.com/workplace4cm"
-#define URL_SIGNUP              "https://onlyoffice.com/registration.aspx?desktop=true"
+#define URL_SITE                ""
+#define URL_SIGNUP              ""
 
 #define GET_REGISTRY_USER(variable) \
     QSettings variable(QSettings::NativeFormat, QSettings::UserScope, REG_GROUP_KEY, REG_APP_NAME);
@@ -73,8 +73,8 @@
 #define ACTIONPANEL_ACTIVATE    ACTIONPANEL_CONNECT + 1
 
 #define URL_AGPL "https://www.gnu.org/licenses/agpl-3.0.en.html"
-#define DOWNLOAD_PAGE "https://github.com/workplace4cm/DesktopEditors/releases"
-#define RELEASE_NOTES "https://github.com/workplace4cm/DesktopEditors/blob/main/CHANGELOG.md"
+#define DOWNLOAD_PAGE ""
+#define RELEASE_NOTES ""
 
 #ifdef __linux
 typedef unsigned char BYTE;

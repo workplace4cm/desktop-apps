@@ -44,7 +44,7 @@ CMainPanelImpl::CMainPanelImpl(QWidget *parent, bool isCustomWindow, double scal
 
 void CMainPanelImpl::refreshAboutVersion()
 {
-    QString _license = tr("Licensed under") + " &lt;a class=\"link\" onclick=\"window.open('" URL_AGPL "')\" draggable=\"false\" href=\"#\"&gt;GNU AGPL v3&lt;/a&gt;";
+    QString _license = tr("Licensed under") + " GNU AGPL v3";
 
     QJsonObject _json_obj;
     _json_obj["version"]    = VER_FILEVERSION_STR;
@@ -59,7 +59,6 @@ void CMainPanelImpl::refreshAboutVersion()
     _json_obj["appname"]    = WINDOW_NAME;
     _json_obj["rights"]     = "© " ABOUT_COPYRIGHT_STR;
     _json_obj["link"]       = URL_SITE;
-    _json_obj["changelog"]  = "https://github.com/ONLYOFFICE/DesktopEditors/blob/master/CHANGELOG.md";
 
     QString _package = QSettings(qApp->applicationDirPath() + "/converter/package.config", QSettings::IniFormat).value("package").toString();
     if ( !_package.isEmpty() )

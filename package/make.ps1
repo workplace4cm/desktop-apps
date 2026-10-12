@@ -2,7 +2,7 @@
     [System.Version]$Version = "0.0.0.0",
     [string]$Arch = "x64",
     [string]$Target,
-    [string]$CompanyName = "CenOffice",
+    [string]$CompanyName = "Secure Office Suite",
     [string]$ProductName = "DesktopEditors",
     [string]$SourceDir,
     [string]$BuildDir,
@@ -70,6 +70,13 @@ Write-Host "COPY: $SourceDir\* > $BuildDir\desktop\"
 Copy-Item -Force -Recurse `
     -Path "$SourceDir\*" `
     -Destination "$BuildDir\desktop\"
+
+# Start menu, desktop and taskbar shortcuts use {app}\app.ico (common.iss),
+# and the notification code reads it too, so ship the app icon under that name.
+Write-Host "COPY: app.ico > $BuildDir\desktop\"
+Copy-Item -Force `
+    -Path "$PSScriptRoot\..\win-linux\res\icons\desktopeditors-eo.ico" `
+    -Destination "$BuildDir\desktop\app.ico"
 
 Write-Host "MOVE: $BuildDir\desktop\editors\web-apps\apps\*\main\resources\help\* > $BuildDir\help\"
 Get-ChildItem -Directory `

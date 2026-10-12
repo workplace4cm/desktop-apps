@@ -72,8 +72,7 @@ image/vnd.djvu;dnl
 text/csv;dnl
 text/markdown;dnl
 text/plain;dnl
-text/tab-separated-values;dnl
-x-scheme-handler/M4_SCHEME_HANDLER;
+text/tab-separated-values;
 Actions=NewDocument;NewSpreadsheet;NewPresentation;NewForm;
 StartupWMClass=_WM_CLASS
 

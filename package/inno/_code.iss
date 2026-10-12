@@ -992,10 +992,8 @@ begin
     GetWindowsVersionEx(version);
     if (version.Major > 6) or ((version.Major = 6) and (version.Minor >= 1)) then begin
       Exec(ExpandConstant('{app}\{#iconsExe}'), '--create-jump-list', '', SW_SHOWNORMAL, ewWaitUntilTerminated, ErrorCode);
-      if CheckCommandlineParam('/noupdates') then begin
-        RegWriteDWordValue(HKEY_LOCAL_MACHINE, ExpandConstant('{#APP_REG_PATH}'), 'CheckForUpdates', 0);
-      end else
-        Exec(ExpandConstant('{app}\updatesvc.exe'), '--install "' + ExpandConstant('{cm:UpdateService}') + '."', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
+      // Secure Office Suite never checks for updates online and installs no update service.
+      RegWriteDWordValue(HKEY_LOCAL_MACHINE, ExpandConstant('{#APP_REG_PATH}'), 'CheckForUpdates', 0);
     end;
     // migrate from the prev version when user's data saved to system common path
     commonCachePath := ExpandConstant('{commonappdata}\{#APP_PATH}\data\cache');

@@ -27,20 +27,28 @@ ifelse(M4_PACKAGE_EDITION, full,
   libcairo2,
   libstdc++6 (>=4.8),
   libxkbcommon-x11-0,
+  libopengl0,
+  libegl1,
+  libxcb-cursor0,
+  libxcb-icccm4,
+  libxcb-image0,
+  libxcb-keysyms1,
+  libxcb-render-util0,
+  libxcb-shape0,
   libnotify4,
   fonts-dejavu | ttf-dejavu,
   fonts-liberation,
   fonts-crosextra-carlito,
   xdg-utils')
 Recommends: ttf-mscorefonts-installer, fonts-takao-gothic 
-ifelse(M4_COMPANY_NAME, CenOffice,Suggests: M4_PACKAGE_NAME-help
+ifelse(M4_COMPANY_NAME, Secure Office Suite,Suggests: M4_PACKAGE_NAME-help
 ,)dnl
 Conflicts: ifelse(M4_PACKAGE_EDITION, commercial, M4_PACKAGE_OPENSOURCE, M4_PACKAGE_COMMERCIAL)
 Description: Desktop editors for text docs, spreadsheets, presentations, PDFs, and PDF forms.
  Open-source office suite pack that comprises all the tools you need to
  work offline with documents, spreadsheets, presentations, PDFs, and PDF forms.
 
-ifelse(M4_COMPANY_NAME, CenOffice,
+ifelse(M4_COMPANY_NAME, Secure Office Suite,
 Package: M4_PACKAGE_NAME-help
 Architecture: all
 Pre-Depends: dpkg (>= 1.14.0)

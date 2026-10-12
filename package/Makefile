@@ -1,16 +1,16 @@
 PWD := $(shell pwd)
 
-COMPANY_NAME ?= CenOffice
+COMPANY_NAME ?= Secure Office Suite
 PRODUCT_NAME ?= Desktop Editors
 PRODUCT_NAME_SHORT ?= $(subst $(empty) $(empty),,$(PRODUCT_NAME))
 
 COMPANY_NAME_LOW = $(shell echo $(COMPANY_NAME) | tr A-Z a-z | tr -s ' ' '-')
 PRODUCT_NAME_LOW = $(shell echo $(PRODUCT_NAME_SHORT) | tr A-Z a-z)
 
-PUBLISHER_NAME ?= CenOffice
+PUBLISHER_NAME ?= Secure Office Suite
 PUBLISHER_URL ?= https://github.com/workplace4cm
 SUPPORT_URL ?= https://github.com/workplace4cm/DesktopEditors/issues
-SUPPORT_MAIL ?= support@cenoffice.invalid
+SUPPORT_MAIL ?= support@secure-office-suite.invalid
 SCHEME_HANDLER ?= oo-office
 
 PRODUCT_VERSION ?= 0.0.0

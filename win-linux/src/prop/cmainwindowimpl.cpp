@@ -89,6 +89,10 @@ void CMainWindowImpl::refreshAboutVersion()
     }
 
     QString _license;
+    if ( !_lic_url.startsWith("file:") )
+        // no bundled license file: name the license without linking to a web page
+        _license = tr("Licensed under") + " " + _lic_name;
+    else
     if ( !(_lic_name.count() > 15) )
         _license = tr("Licensed under") + " &lt;a class=\"link\" onclick=\"window.open('" + _lic_url + "')\" draggable=\"false\" href=\"#\"&gt;" + _lic_name + "&lt;/a&gt;";
     else _license = "&lt;a class=\"link\" onclick=\"window.open('" + _lic_url + "')\" draggable=\"false\" href=\"#\"&gt;" + _lic_name + "&lt;/a&gt;";
@@ -118,7 +122,7 @@ void CMainWindowImpl::refreshAboutVersion()
     _json_obj["appname"]    = ABOUT_PAGE_APP_NAME;
 #else
     // _json_obj["appname"]    = WINDOW_NAME;
-    _json_obj["appname"]    = "CenOffice Desktop Editors";
+    _json_obj["appname"]    = "Secure Office Suite";
 #endif
     _json_obj["rights"]     = ABOUT_COPYRIGHT_STR;
     _json_obj["link"]       = URL_SITE;

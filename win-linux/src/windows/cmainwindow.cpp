@@ -1474,6 +1474,8 @@ void CMainWindow::onPortalNew(QString in)
 void CMainWindow::onPortalCreate()
 {
     QString _url = URL_SIGNUP;
+    if (_url.isEmpty())
+        return; // no online sign-up in Secure Office Suite
     GET_REGISTRY_SYSTEM(reg_system)
     if (reg_system.contains("Store"))
             _url += "&store=" + reg_system.value("Store").toString();

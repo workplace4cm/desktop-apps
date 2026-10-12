@@ -1,6 +1,6 @@
 l10n.en_GB = {
     welWelcome: 'Welcome to __COMPANY_NAME__!',
-    welDescr: 'Work on documents offline or connect the suite to your cloud: ownCloud, Nextcloud and more.',
+    welDescr: 'Create and edit documents, spreadsheets, presentations and PDFs on this computer.',
     welNeedHelp: 'Need help? Visit our $1.',
     textHelpCenter: 'Help Center',
     btnConnect: 'Connect now',
