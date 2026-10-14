@@ -19,8 +19,6 @@ ifelse(M4_PACKAGE_EDITION, full,
   libasound2,
   curl | wget,
   desktop-file-utils,
-  gstreamer1.0-libav,
-  gstreamer1.0-plugins-ugly,
   libxss1,
   libatk1.0-0,
   libgtk-3-0,
@@ -29,18 +27,13 @@ ifelse(M4_PACKAGE_EDITION, full,
   libxkbcommon-x11-0,
   libopengl0,
   libegl1,
-  libxcb-cursor0,
   libxcb-icccm4,
   libxcb-image0,
   libxcb-keysyms1,
   libxcb-render-util0,
   libxcb-shape0,
   libnotify4,
-  fonts-dejavu | ttf-dejavu,
-  fonts-liberation,
-  fonts-crosextra-carlito,
   xdg-utils')
-Recommends: ttf-mscorefonts-installer, fonts-takao-gothic 
 ifelse(M4_COMPANY_NAME, Secure Office Suite,Suggests: M4_PACKAGE_NAME-help
 ,)dnl
 Conflicts: ifelse(M4_PACKAGE_EDITION, commercial, M4_PACKAGE_OPENSOURCE, M4_PACKAGE_COMMERCIAL)

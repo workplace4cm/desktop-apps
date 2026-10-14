@@ -35,9 +35,6 @@
 #include <QDir>
 #include <QFile>
 
-#define DEFAULT_LICENSE_NAME    "GNU AGPL v3"
-#define DEFAULT_LICENSE_URL     URL_AGPL
-#define LICENSE_FILE_NAME       "/EULA.txt"
 
 CMainWindowImpl::CMainWindowImpl(const QRect &rect) :
     CMainWindow(rect)
@@ -49,74 +46,9 @@ void CMainWindowImpl::refreshAboutVersion()
 {
     QJsonObject _json_obj;
 
-    auto _read_license_name = [](QString& path) -> QString {
-        QFileInfo fi(path);
-        QDir dir = fi.dir();
-        QStringList files = dir.entryList(QStringList() << fi.fileName(),
-                                          QDir::Files, QDir::Name | QDir::IgnoreCase);
-        if (files.isEmpty())
-            return QString();
-
-        path = dir.filePath(files.first());
-        QFile f(path);
-        QString n;
-        if ( f.exists() ) {
-            if ( f.open(QIODevice::ReadOnly | QIODevice::Text )) {
-                QTextStream stream(&f);
-                n = stream.readLine().trimmed();
-                f.close();
-            }
-        }
-
-        return n;
-    };
-
-    QString _lic_path = QCoreApplication::applicationDirPath() + LICENSE_FILE_NAME;
-    QString _lic_name = _read_license_name(_lic_path),
-            _lic_url;
-    if ( _lic_name.isEmpty() ) {
-        _lic_path = QCoreApplication::applicationDirPath() + "/License.txt";
-        if ( (_lic_name = _read_license_name(_lic_path)).isEmpty() ) {
-            _lic_name = DEFAULT_LICENSE_NAME;
-            _lic_url = DEFAULT_LICENSE_URL;
-        }
-    } else {
-        _json_obj["commercial"] = _lic_name != DEFAULT_LICENSE_NAME;
-    }
-
-    if ( _lic_url.isEmpty() ) {
-        _lic_url = QUrl::fromLocalFile(_lic_path).toString();
-    }
-
-    QString _license;
-    if ( !_lic_url.startsWith("file:") )
-        // no bundled license file: name the license without linking to a web page
-        _license = tr("Licensed under") + " " + _lic_name;
-    else
-    if ( !(_lic_name.count() > 15) )
-        _license = tr("Licensed under") + " &lt;a class=\"link\" onclick=\"window.open('" + _lic_url + "')\" draggable=\"false\" href=\"#\"&gt;" + _lic_name + "&lt;/a&gt;";
-    else _license = "&lt;a class=\"link\" onclick=\"window.open('" + _lic_url + "')\" draggable=\"false\" href=\"#\"&gt;" + _lic_name + "&lt;/a&gt;";
-
-
-    _json_obj["version"]    = VER_FILEVERSION_STR;
-#ifdef Q_OS_WIN
-# if defined(_M_ARM64)
-    _json_obj["arch"] = "arm64";
-# elif defined(_M_ARM)
-    _json_obj["arch"] = "arm";
-# elif defined(_M_X64)
-    _json_obj["arch"] = "x64";
-# elif defined(_M_IX86)
-    _json_obj["arch"] = "x86";
-# endif
-#else
-# if defined(__aarch64__)
-    _json_obj["arch"] = "arm64";
-# elif defined(__x86_64__)
-    _json_obj["arch"] = "x64";
-# endif
-#endif
-    _json_obj["edition"]    = _license;
+    // About shows the product name, its own version and the copyright only:
+    // no engine version, architecture, package type or license link.
+    _json_obj["version"]    = ABOUT_VERSION_STR;
 
 #if defined(ABOUT_PAGE_APP_NAME)
     _json_obj["appname"]    = ABOUT_PAGE_APP_NAME;
@@ -127,10 +59,6 @@ void CMainWindowImpl::refreshAboutVersion()
     _json_obj["rights"]     = ABOUT_COPYRIGHT_STR;
     _json_obj["link"]       = URL_SITE;
 //    _json_obj["changelog"]  = "https://github.com/ONLYOFFICE/DesktopEditors/blob/master/CHANGELOG.md";
-
-    QString _package = QSettings(qApp->applicationDirPath() + "/converter/package.config", QSettings::IniFormat).value("package").toString();
-    if ( !_package.isEmpty() )
-        _json_obj["pkg"] = _package;
 
     AscAppManager::sendCommandTo(SEND_TO_ALL_START_PAGE, "app:version", Utils::stringifyJson(_json_obj));
 
