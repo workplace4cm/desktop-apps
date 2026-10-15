@@ -55,7 +55,7 @@
 #endif
 
 #define VER_COMPANYNAME_STR         "Secure Office Suite\0"
-#define VER_LEGALCOPYRIGHT_STR      "© MSD, CENTech " TO_STR(COPYRIGHT_YEAR) ". All rights reserved.\0"
+#define VER_LEGALCOPYRIGHT_STR      "© Secure Communications " TO_STR(COPYRIGHT_YEAR) ". All rights reserved.\0"
 #define VER_COMPANYDOMAIN_STR       "\0"
 #define ABOUT_COPYRIGHT_STR         VER_LEGALCOPYRIGHT_STR
 #define ABOUT_VERSION_STR           "1.0.0"
