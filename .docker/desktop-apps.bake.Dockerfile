@@ -127,5 +127,9 @@ FROM core-base AS desktop-linux
     RUN rm /desktopeditors/converter/allthemesgen && \
         rm /desktopeditors/converter/allfontsgen
 
+    # Ship libxcb-cursor with the app: Qt's xcb platform plugin needs it and
+    # stock Ubuntu installs don't have it, so the .deb doesn't depend on it.
+    RUN cp -L "$(dpkg -L libxcb-cursor0 | grep '/libxcb-cursor\.so\.0$')" /desktopeditors/
+
     RUN echo 'LD_LIBRARY_PATH=$PWD:$PWD/converter:$LD_LIBRARY_PATH LD_PRELOAD=libcef.so ./DesktopEditors' > /desktopeditors/start_desktop.sh && \
         chmod +x /desktopeditors/start_desktop.sh

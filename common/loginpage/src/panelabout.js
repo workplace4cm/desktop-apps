@@ -52,7 +52,9 @@
     };
 
     const version = function(commercial) {
-        return commercial === true ? utils.Lang.strVersionCommercial : utils.Lang.strVersionCommunity;
+        // plain "Version", without the Community/Enterprise edition label
+        const str = utils.Lang.strVersion || 'version';
+        return str.charAt(0).toUpperCase() + str.slice(1);
     };
 
     ViewAbout.prototype = Object.create(baseView.prototype);
