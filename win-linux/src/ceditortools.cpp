@@ -314,10 +314,38 @@ namespace CEditorTools
         CFileDialogWrapper dlg(parent);
 
         QString _path = QString::fromStdWString(path);
+
+        // Secure Office Suite start pages ask for "app:<id>" or "app:<id>|<folder>":
+        // the picker lists that application's formats first.
+        QString _filter, _app_filter;
+        if ( _path.startsWith("app:") ) {
+            const int sep = _path.indexOf('|');
+            const QString app_id = _path.mid(4, sep < 0 ? -1 : sep - 4);
+            _path = sep < 0 ? QString() : _path.mid(sep + 1);
+
+            if ( app_id == "writer" )
+                _app_filter = QObject::tr("EuroOffice Writer documents") +
+                        " (*.docx *.doc *.odt *.rtf *.txt *.docm *.dotx *.dotm *.dot *.ott *.fodt *.html *.htm *.mht *.mhtml *.epub *.fb2 *.md *.xml *.pages *.hwp *.hwpx)";
+            else
+            if ( app_id == "sheet" )
+                _app_filter = QObject::tr("EuroOffice Sheet workbooks") +
+                        " (*.xlsx *.xls *.ods *.csv *.xlsm *.xlsb *.xltx *.xltm *.ots *.fods *.tsv *.numbers)";
+            else
+            if ( app_id == "presentation" )
+                _app_filter = QObject::tr("EuroOffice Presentation files") +
+                        " (*.pptx *.ppt *.odp *.pptm *.ppsx *.ppsm *.pps *.potx *.potm *.pot *.otp *.fodp *.key)";
+            else
+            if ( app_id == "pdf" )
+                _app_filter = QObject::tr("EuroOffice PDF documents") + " (*.pdf *.djvu *.djv *.xps *.oxps)";
+
+            if ( !_app_filter.isEmpty() )
+                _filter = _app_filter + ";;" + CFileDialogWrapper::tr("All files (*.*)");
+        }
+
         if ( _path.isEmpty() || !QDir(_path).exists() )
             _path = Utils::lastPath(LOCAL_PATH_OPEN);
 
-        if (!(_path = dlg.modalOpenSingle(_path)).isEmpty()) {
+        if (!(_path = dlg.modalOpenSingle(_path, _filter, _filter.isEmpty() ? nullptr : &_app_filter)).isEmpty()) {
             Utils::keepLastPath(LOCAL_PATH_OPEN, QFileInfo(_path).absolutePath());
         }
 

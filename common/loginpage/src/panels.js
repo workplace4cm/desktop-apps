@@ -363,6 +363,10 @@ function openFile(from, model) {
         last_click_time = performance.now();
 
         if (from == OPEN_FILE_FOLDER) {
+            // "app:<id>|<folder>": the picker offers the application's formats first
+            const _app = SOS.currentApp();
+            if ( !_app.isSuite() )
+                model = 'app:' + _app.id + (model ? '|' + model : '');
             window.sdk.command("open:folder", model);
         } else {
             const params = {

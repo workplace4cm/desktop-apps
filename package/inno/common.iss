@@ -226,6 +226,11 @@ Name: desktopicon; Description: {cm:CreateDesktopIcon,{#sAppName}}; GroupDescrip
 ;Name: {commondesktop}\{#sAppName}; FileName: {app}\{#NAME_EXE_OUT}; WorkingDir: {app}; Tasks: desktopicon;
 Name: {commondesktop}\{#sAppIconName}; FileName: {app}\{#iconsExe}; WorkingDir: {app}; Tasks: desktopicon; IconFilename: {app}\app.ico; AppUserModelID: {#APP_USER_MODEL_ID};
 Name: {group}\{#sAppIconName};         Filename: {app}\{#iconsExe}; WorkingDir: {app}; IconFilename: {app}\app.ico; AppUserModelID: {#APP_USER_MODEL_ID};
+; Secure Office Suite applications: each opens on its own start page
+Name: "{group}\EuroOffice Writer";       Filename: "{app}\{#iconsExe}"; Parameters: "--app=writer";       WorkingDir: {app}; IconFilename: "{app}\{#iconsExe}"; IconIndex: 14;
+Name: "{group}\EuroOffice Sheet";        Filename: "{app}\{#iconsExe}"; Parameters: "--app=sheet";        WorkingDir: {app}; IconFilename: "{app}\{#iconsExe}"; IconIndex: 15;
+Name: "{group}\EuroOffice Presentation"; Filename: "{app}\{#iconsExe}"; Parameters: "--app=presentation"; WorkingDir: {app}; IconFilename: "{app}\{#iconsExe}"; IconIndex: 16;
+Name: "{group}\EuroOffice PDF";          Filename: "{app}\{#iconsExe}"; Parameters: "--app=pdf";          WorkingDir: {app}; IconFilename: "{app}\{#iconsExe}"; IconIndex: 5;
 Name: {group}\{cm:Uninstall}; IconFilename: {app}\{#iconsExe}; IconIndex: 25; Filename: {uninstallexe}; WorkingDir: {app};
 Name: "{group}\{cm:jumpDOCX}"; IconFilename: "{app}\{#iconsExe}"; IconIndex: 14; Filename: "{app}\{#iconsExe}"; Parameters: "--new:word";
 Name: "{group}\{cm:jumpXLSX}"; IconFilename: "{app}\{#iconsExe}"; IconIndex: 15; Filename: "{app}\{#iconsExe}"; Parameters: "--new:cell";

@@ -283,6 +283,14 @@ body,
   gap: @sos-space-4;
 }
 
+// Home strip: one row of cards, as many as fit; the rest are on the New page
+.sos-section--new .sos-gallery__grid {
+  grid-template-rows: auto;
+  grid-auto-rows: 0;
+  row-gap: 0;
+  overflow: hidden;
+}
+
 .sos-card {
   display: flex;
   flex-direction: column;
@@ -338,7 +346,8 @@ body,
     height: 96px;
   }
 
-  &--browse &__icon {
+  &--browse &__icon,
+  &--open &__icon {
     width: 56px;
     height: 56px;
   }

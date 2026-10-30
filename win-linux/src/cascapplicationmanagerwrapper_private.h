@@ -363,9 +363,19 @@ public:
                     if( jerror.error == QJsonParseError::NoError ) {
                         QJsonObject obj = jdoc.object().value("template").toObject();
                         int _f = obj.value("type").toInt();
+                        const QString _path = obj.value("path").toString();
 
-                        COpenOptions opts{m_appmanager.newFileName(_f), etTemplateFile, obj.value("path").toString()};
+                        // a gallery template that was removed or can't be read
+                        QFileInfo _info(_path);
+                        if ( !_info.isFile() || !_info.isReadable() ) {
+                            CMessage::error(m_appmanager.mainWindow() ? m_appmanager.mainWindow()->handle() : nullptr,
+                                            QObject::tr("The template %1 is missing or cannot be read.").arg(_info.fileName().toHtmlEscaped()));
+                            return true;
+                        }
+
+                        COpenOptions opts{m_appmanager.newFileName(_f), etTemplateFile, _path};
                         opts.format = _f;
+                        opts.parent_id = event.m_nSenderId;
 
                         openDocument(opts);
                     }

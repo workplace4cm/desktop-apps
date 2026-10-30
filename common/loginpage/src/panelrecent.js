@@ -560,7 +560,11 @@
                 }
             } else if (/\:clear/.test(action)) {
                 if (menu.actionlist === 'recent') {
-                    window.sdk.LocalFileRemoveAllRecents();
+                    // an application clears only its own documents; the
+                    // shared history keeps the other applications' lists
+                    if ( SOS.currentApp().isSuite() )
+                        window.sdk.LocalFileRemoveAllRecents();
+                    else collectionRecents.items.slice().forEach(m => window.sdk.LocalFileRemoveRecent(parseInt(m.fileid)));
                     if (collectionRecovers.size() === 0) {
                         this.dndZone.show();
                     }
