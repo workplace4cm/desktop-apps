@@ -204,7 +204,7 @@ int main( int argc, char *argv[] )
         if (_args.size() > 0) {
             foreach (auto w_arg, _args) {
                 const QString arg = QString::fromStdWString(w_arg);
-                if ( arg.startsWith("--new:") )
+                if ( arg.startsWith("--new:") || arg.startsWith("--app=") )
                     _out_args.append(arg).append(";");
                 else
                 if ( arg.mid(0,2) != "--" )

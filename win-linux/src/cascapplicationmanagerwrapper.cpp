@@ -58,6 +58,65 @@ using namespace std::placeholders;
 
 bool CAscApplicationManagerWrapper::m_rtlEnabled = false;
 
+namespace {
+    // Secure Office Suite application (writer, sheet, presentation, pdf) whose
+    // start page the main window shows; empty for the whole suite.
+    QString g_start_app;
+
+    auto appFromArgs(const std::vector<std::wstring>& args) -> QString {
+        for (const auto& arg: args) {
+            if ( arg.rfind(L"--app=", 0) == 0 ) {
+                const std::wstring app_id = arg.substr(6);
+                if ( app_id == L"writer" || app_id == L"sheet" || app_id == L"presentation" || app_id == L"pdf" )
+                    return QString::fromStdWString(app_id);
+                break;
+            }
+        }
+        return QString();
+    }
+
+    auto appFromEditorType(AscEditorType type) -> QString {
+        switch ( type ) {
+        case AscEditorType::etDocument:     return "writer";
+        case AscEditorType::etSpreadsheet:  return "sheet";
+        case AscEditorType::etPresentation: return "presentation";
+        case AscEditorType::etPdf:
+        case AscEditorType::etDocumentMasterForm: return "pdf";
+        default: return QString();
+        }
+    }
+
+    auto startPageUrl() -> std::wstring {
+        GET_REGISTRY_USER(reg_user);
+
+        QString data_path;
+#if defined(QT_DEBUG)
+        data_path = reg_user.value("startpage").value<QString>();
+#endif
+
+        if ( data_path.isEmpty() )
+            data_path = qApp->applicationDirPath() + "/index.html";
+
+        QString additional = "?waitingloader=yes&lang=" + CLangater::getCurrentLangCode();
+        QString _portal = reg_user.value("portal").value<QString>();
+        if (!_portal.isEmpty()) {
+            QString arg_portal = (additional.isEmpty() ? "?portal=" : "&portal=") + _portal;
+            additional.append(arg_portal);
+        }
+
+#if defined(__OS_WIN_XP)
+        additional.append("&osver=winxp");
+#endif
+
+        // Secure Office Suite: the start page takes the application's identity,
+        // templates and recent documents
+        if ( !g_start_app.isEmpty() )
+            additional.append("&app=" + g_start_app);
+
+        return ("file:///" + data_path + additional).toStdWString();
+    }
+}
+
 std::wstring get_file_name_from_open_deeplink(const std::wstring& link)
 {
     size_t pos1 = link.find(L"|n|");
@@ -859,37 +918,7 @@ CMainWindow * CAscApplicationManagerWrapper::prepareMainWindow(const QRect& r)
     CMainWindow * _window = static_cast<CMainWindow*>(new CMainWindowImpl(_start_rect));
     _window->attachStartPanel(_startPanel);
 
-    QString data_path;
-#if defined(QT_DEBUG)
-    data_path = reg_user.value("startpage").value<QString>();
-#endif
-
-    if ( data_path.isEmpty() )
-        data_path = qApp->applicationDirPath() + "/index.html";
-
-    QString additional = "?waitingloader=yes&lang=" + CLangater::getCurrentLangCode();
-    QString _portal = reg_user.value("portal").value<QString>();
-    if (!_portal.isEmpty()) {
-        QString arg_portal = (additional.isEmpty() ? "?portal=" : "&portal=") + _portal;
-        additional.append(arg_portal);
-    }
-
-#if defined(__OS_WIN_XP)
-    additional.append("&osver=winxp");
-#endif
-
-    // Secure Office Suite: --app=writer|sheet|presentation|pdf gives the start
-    // page that application's identity, templates and recent documents.
-    for (const auto& arg: InputArgs::arguments()) {
-        if ( arg.rfind(L"--app=", 0) == 0 ) {
-            const std::wstring app_id = arg.substr(6);
-            if ( app_id == L"writer" || app_id == L"sheet" || app_id == L"presentation" || app_id == L"pdf" )
-                additional.append("&app=" + QString::fromStdWString(app_id));
-            break;
-        }
-    }
-
-    std::wstring start_path = ("file:///" + data_path + additional).toStdWString();
+    std::wstring start_path = startPageUrl();
     _startPanel->GetCefView()->load(start_path);
 
 
@@ -929,6 +958,7 @@ void CAscApplicationManagerWrapper::handleInputCmd(const std::vector<wstring>& v
     std::wstring app_action_plugin = app_scheme + L"//action|install-plugin";
     std::wstring app_command = app_scheme + L"//command/";
     std::vector<std::wstring> vec_window_actions;
+    bool has_documents = false;
 
     for (const auto& arg: vargs) {
         COpenOptions open_opts;
@@ -1044,6 +1074,7 @@ void CAscApplicationManagerWrapper::handleInputCmd(const std::vector<wstring>& v
             }
         }
 
+        has_documents = true;
         if ( open_in_new_window ) {
             bool isMaximized = false;
             _app.m_private->editorWindowGeometry(_start_rect, isMaximized, open_opts);
@@ -1078,6 +1109,17 @@ void CAscApplicationManagerWrapper::handleInputCmd(const std::vector<wstring>& v
                 }
             }
         }
+    }
+
+    // Launching an application with no document shows its start page; a
+    // document given on the command line (file association) opens directly.
+    const QString app_id = appFromArgs(vargs);
+    if ( !app_id.isEmpty() ) {
+        if ( !has_documents && list_failed.empty() && vec_window_actions.empty() )
+            showStartPage(app_id);
+        else
+        if ( !_app.m_pMainWindow )
+            g_start_app = app_id;
     }
 
     if ( !list_failed.empty() && !open_in_new_window ) {
@@ -1256,6 +1298,7 @@ void CAscApplicationManagerWrapper::startApp()
         in_args.push_back(L"--new:word");
     }
 
+    g_start_app = appFromArgs(in_args);
     handleInputCmd(in_args);
     if ( _app.m_vecEditors.empty() && !_app.m_pMainWindow ) {
         _app.m_pMainWindow = _app.prepareMainWindow();
@@ -1475,9 +1518,42 @@ CPresenterWindow * CAscApplicationManagerWrapper::createReporterWindow(void * da
     return reporterWindow;
 }
 
+void CAscApplicationManagerWrapper::showStartPage(const QString& app_id)
+{
+    APP_CAST(_app)
+
+    if ( app_id != g_start_app ) {
+        g_start_app = app_id;
+        if ( _app.m_pMainWindow ) {
+            if ( CCefView * view = _app.GetViewById(_app.m_pMainWindow->startPanelId()) )
+                view->load(startPageUrl());
+        }
+    }
+
+    gotoMainWindow();
+    if ( _app.m_pMainWindow && !_app.m_pMainWindow->isSlideshowMode() )
+        _app.m_pMainWindow->goStart();
+}
+
 void CAscApplicationManagerWrapper::gotoMainWindow(size_t src)
 {
     APP_CAST(_app)
+
+    // Home in an editor of one of the applications shows that application's
+    // start page
+    if ( src && !g_start_app.isEmpty() ) {
+        const CEditorWindow & _editor = *reinterpret_cast<CEditorWindow *>(src);
+        if ( CTabPanel * panel = _editor.mainView() ) {
+            const QString app_id = appFromEditorType(panel->data()->contentType());
+            if ( !app_id.isEmpty() && app_id != g_start_app ) {
+                g_start_app = app_id;
+                if ( _app.m_pMainWindow ) {
+                    if ( CCefView * view = _app.GetViewById(_app.m_pMainWindow->startPanelId()) )
+                        view->load(startPageUrl());
+                }
+            }
+        }
+    }
 
     if ( !_app.m_pMainWindow ) {
         GET_REGISTRY_USER(reg_user)

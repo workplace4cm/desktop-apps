@@ -172,6 +172,7 @@ public:
     static void             startApp();
     static void             initializeApp();
     static void             gotoMainWindow(size_t pw = 0);
+    static void             showStartPage(const QString& app_id);
     static void             handleInputCmd(const std::vector<std::wstring>&);
     static void             closeEditorWindow(const size_t);
     static void             pinWindowToTab(CEditorWindow *editor, bool by_position = true);

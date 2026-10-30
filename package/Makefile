@@ -62,8 +62,12 @@ DESKTOPEDITORS_EXEC := $(PACKAGE_NAME)
 
 BIN_FILES += build/main/usr/bin/$(DESKTOPEDITORS_EXEC)
 DESKTOP_FILES += build/main/usr/share/applications/$(DESKTOPEDITORS_EXEC).desktop
+# Secure Office Suite applications, each with its own launcher
+SOS_APPS := writer sheet presentation pdf
+SOS_DESKTOP_FILES := $(foreach a,$(SOS_APPS),build/main/usr/share/applications/$(DESKTOPEDITORS_EXEC)-$(a).desktop)
 LINUX_DEPS += $(BIN_FILES)
 LINUX_DEPS += $(DESKTOP_FILES)
+LINUX_DEPS += $(SOS_DESKTOP_FILES)
 LINUX_DEPS += $(CHANGELOG_RPM)
 LINUX_DEPS += $(patsubst $(BRANDING_DIR)/common/linux/icons-eo/%.png, \
 	build/main/usr/share/icons/hicolor/%/apps/$(DESKTOPEDITORS_EXEC).png, \
@@ -353,6 +357,9 @@ build/main/usr/share/applications/$(DESKTOPEDITORS_EXEC).desktop : common/linux/
 
 $(BIN_FILES) $(DESKTOP_FILES) :
 	mkdir -p $(@D) && m4 -I "$(BRANDING_DIR)/common/linux" $(M4_PARAMS) $< > $@
+
+$(SOS_DESKTOP_FILES) : build/main/usr/share/applications/$(DESKTOPEDITORS_EXEC)-%.desktop : common/linux/sos-app.desktop.m4
+	mkdir -p $(@D) && m4 -I "$(BRANDING_DIR)/common/linux" $(M4_PARAMS) -D M4_SOS_APP=$* $< > $@
 
 % : %.m4
 	m4 $(M4_PARAMS)	$< > $@

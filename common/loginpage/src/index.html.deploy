@@ -99,5 +99,7 @@
     <script type="text/javascript" replace="yes" src="dropdown.js"></script>
     <script type="text/javascript" replace="yes" src="bs-select.min.js"></script>
     <script type="text/javascript" replace="yes" src="build.min.js"></script>
+    <!-- local template gallery, installed with the converter (no network) -->
+    <script type="text/javascript" src="converter/templates/sos/manifest.js"></script>
 </body>
 </html>

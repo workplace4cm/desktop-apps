@@ -38,19 +38,47 @@ DesktopEditors build fails if the two differ. Change both together.
 page (`panelrecent.js`) uses the header, a gallery strip and the recent list,
 which shows only the current application's formats.
 
-Template entries look like this:
+## Templates
+
+The galleries list local templates only. `common/templates/sos/manifest.js`
+is installed as `converter/templates/sos/manifest.js` next to the start page,
+which loads it with a plain `<script>` tag. It calls
+`SOS.templates.registerFrom(document.currentScript.src, [...])` with paths
+relative to itself:
 
 ```js
-SOS.templates.register({
-    app: 'writer',                 // writer | sheet | presentation
-    name: 'Business letter',
-    description: 'Formal letter with letterhead',
-    category: 'business',
-    path: '/opt/secure-office-suite/templates/writer/letter.dotx',
-    type: 76,                      // utils.defines.FileFormat of the file
-    thumb: 'templates/writer/letter.png',
-});
+{app: 'writer', name: 'Business letter', description: 'Formal letter with letterhead',
+ category: 'Business', file: 'writer/business-letter.dotx', format: 'FILE_DOCUMENT_DOTX',
+ thumb: 'thumbs/writer-business-letter.png'}
 ```
+
+A card runs `create:new {"template": {type, path}}`; the shell opens a new,
+untitled document from a copy, so the template file never changes, and it
+reports a missing or unreadable template instead of opening it. A thumbnail
+that fails to load shows an empty frame.
+
+The suite's own templates (Writer: letter, resume, report, meeting notes,
+memo; Sheet: budget, calendar, invoice, financial report; Presentation:
+business, project, education) and all thumbnails are built by
+`tools/sos-templates/make_templates.py`. The other entries reuse templates
+already shipped in `common/templates/EN`, and EuroOffice PDF lists the
+fillable PDF forms from there.
+
+## Open
+
+`open:folder` takes `app:<id>` or `app:<id>|<folder>` from an application's
+start page: the native picker then offers that application's formats first.
+The recent list of an application shows and clears only its own documents.
+
+## Launching
+
+`--app=<id>` opens that application's start page. A second launch with
+another `--app` while the suite runs switches the main window's start page
+and brings it to the front; a launch with a document opens the document
+without the start page. Home in an editor window returns to the start page
+of that editor's application. The Windows Start Menu and the Linux menu have
+one entry per application (`package/inno/common.iss`,
+`package/common/linux/sos-app.desktop.m4`).
 
 ## Settings store (`store.js`)
 

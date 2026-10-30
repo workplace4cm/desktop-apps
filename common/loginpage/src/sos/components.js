@@ -55,9 +55,9 @@
         browseTemplate: function (editor) {
             once(() => window.sdk.command('create:new', 'template:' + editor));
         },
-        // Native file picker for any supported document.
+        // Native file picker; an application's picker lists its own formats first.
         browseDocument: function () {
-            once(() => window.sdk.command('open:folder', ''));
+            once(() => openFile(OPEN_FILE_FOLDER, ''));
         },
     };
 
@@ -73,7 +73,38 @@
     // ----------------------------------------------------------------------
 
     const registry = [];
+
+    // file:///C:/a%20b/x.dotx -> C:/a b/x.dotx, file:///opt/x.dotx -> /opt/x.dotx
+    const localPath = function (url) {
+        const path = decodeURIComponent(url.pathname);
+        return /^\/[A-Za-z]:\//.test(path) ? path.substring(1) : path;
+    };
+
+    const formatCode = function (f) {
+        if ( typeof f === 'number' ) return f;
+        const ff = window.utils && utils.defines && utils.defines.FileFormat;
+        return ff && ff[f] || 0;
+    };
+
     SOS.templates = {
+        // Entries with file paths relative to base (a manifest's URL), as in
+        // converter/templates/sos/manifest.js.
+        registerFrom: function (base, list) {
+            if ( !base ) return;
+            this.register((list || []).map(t => {
+                try {
+                    const url = new URL(t.file, base);
+                    return Object.assign({}, t, {
+                        id: t.id || t.app + ':' + t.file,
+                        path: localPath(url),
+                        type: formatCode(t.type || t.format),
+                        thumb: t.thumb ? new URL(t.thumb, base).href : undefined,
+                    });
+                } catch (e) {
+                    console.warn('sos.templates: bad entry', t, e);
+                }
+            }).filter(t => !!t));
+        },
         register: function (list) {
             (Array.isArray(list) ? list : [list]).forEach(t => {
                 if ( !t || !t.path || !t.app || !SOS.apps[t.app] || SOS.apps[t.app].isSuite() ) {
@@ -196,6 +227,20 @@
         };
     };
 
+    // EuroOffice PDF has no blank-document workflow of its own: opening a PDF
+    // is its first action, so the gallery leads with it.
+    const openCard = function (app) {
+        return {
+            kind: 'open',
+            key: 'open:' + app.id,
+            name: text('sosOpenPdf', 'Open PDF…'),
+            langKey: 'sosOpenPdf',
+            description: text('sosOpenPdfDescr', 'Browse this computer'),
+            app: app.id,
+            run: () => SOS.actions.browseDocument(),
+        };
+    };
+
     const browseCard = function (editor) {
         const app = Object.keys(SOS.newTypes).map(k => SOS.newTypes[k]).find(nt => nt.type === editor).app;
         return {
@@ -219,7 +264,8 @@
 
     SOS.TemplateGallery.prototype.cards = function () {
         const app = this.app;
-        let cards = app.newTypes.map(t => blankCard(SOS.newTypes[t]));
+        let cards = app.id === 'pdf' ? [openCard(app)] : [];
+        cards = cards.concat(app.newTypes.map(t => blankCard(SOS.newTypes[t])));
 
         const category = this.withCategories ? this.store.get('gallery.category', 'all') : 'all';
         cards = cards.concat(SOS.templates.forApp(app)
@@ -237,7 +283,7 @@
         let thumb;
         if ( c.thumb ) {
             thumb = `<img class="sos-card__img" src="${esc(c.thumb)}" alt="" onerror="this.parentNode.classList.add('sos-card__thumb--missing');this.remove()">`;
-        } else if ( c.kind === 'browse' ) {
+        } else if ( c.kind === 'browse' || c.kind === 'open' ) {
             thumb = `<svg class="sos-card__icon"><use href="#folder-big"></use></svg>`;
         } else {
             thumb = `<svg class="sos-card__icon"><use href="${nt ? nt.icon : '#template-item'}"></use></svg>`;
