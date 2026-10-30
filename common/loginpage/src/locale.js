@@ -168,6 +168,19 @@ l10n.en = {
     labelDropFile: 'Drag your files here or',
     labelSelectFile: 'Select file',
     settUseAI: 'Use AI functions',
+    sosNew: 'New',
+    sosMoreTemplates: 'More templates',
+    sosOpenOther: 'Open other files',
+    sosBlankDocument: 'Blank document',
+    sosBlankWorkbook: 'Blank workbook',
+    sosBlankPresentation: 'Blank presentation',
+    sosBlankForm: 'Blank PDF form',
+    sosTemplateFile: 'Template from file…',
+    sosTemplateFileDescr: 'Use a template saved on this computer',
+    sosAllTemplates: 'All',
+    sosGoodMorning: 'Good morning',
+    sosGoodAfternoon: 'Good afternoon',
+    sosGoodEvening: 'Good evening',
 }
 
 

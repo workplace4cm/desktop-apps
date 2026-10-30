@@ -2,10 +2,10 @@
     "id": "theme-light",
     "type": "light",
     "values": {
-        "brand-word": "#446995",
-        "brand-slide": "#b75b44",
-        "brand-cell": "#3a8056",
-        "brand-pdf": "#aa5252",
+        "brand-word": "#2d5aa6",
+        "brand-slide": "#b9482a",
+        "brand-cell": "#1f7a4d",
+        "brand-pdf": "#b7262e",
         "brand-draw": "#444796",
 
         "window-background": "#E4E4E4",

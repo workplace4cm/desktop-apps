@@ -34,7 +34,8 @@
 // #define REGISTRY_THEME_KEY_7_2 "UITheme2"
 #define THEME_DEFAULT_DARK_ID "theme-night"
 #if !defined(__OS_WIN_XP)
-# define THEME_DEFAULT_LIGHT_ID "theme-white"
+// Secure Office Suite: the colourful theme paints title bars in the application colour
+# define THEME_DEFAULT_LIGHT_ID "theme-light"
 #else
 # define THEME_DEFAULT_LIGHT_ID "theme-classic-light"
 #endif

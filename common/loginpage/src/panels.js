@@ -25,8 +25,15 @@
 
 'use strict';
 $(document).ready(function() {
+    SOS.applyIdentity();
+    const _app = SOS.currentApp();
+
     const _toolmenu_tpl = `
             <div class="main-column col-left tool-menu">
+              <div class="sos-rail-head" title="${SOS.util.esc(_app.name)}">
+                ${SOS.appBadge(_app)}
+                <span class="sos-rail-head__name">${SOS.util.esc(_app.isSuite() ? _app.name : _app.shortName)}</span>
+              </div>
               <li class="menu-item">
                 <a action="recents">
                     <div class="icon-box">
@@ -35,6 +42,16 @@ $(document).ready(function() {
                         </svg>
                     </div>
                     <span class="text" l10n>${utils.Lang.actHome}</span>
+                </a>
+              </li>
+              <li class="menu-item">
+                <a action="new">
+                    <div class="icon-box">
+                        <svg class="icon" data-iconname="plus" data-precls="tool-icon__20">
+                            <use href="#plus"></use>
+                        </svg>
+                    </div>
+                    <span class="text" l10n>${utils.Lang.sosNew}</span>
                 </a>
               </li>
               <li class="menu-item">
@@ -107,6 +124,7 @@ $(document).ready(function() {
     if ( !!window.ControllerTemplates )
         window.app.controller.templates = (new ControllerTemplates).init();
     window.app.controller.recent = (new ControllerRecent).init();
+    window.app.controller.new = (new ControllerNew).init();
     window.app.controller.folders = (new ControllerFolders).init();
     window.app.controller.about = (new ControllerAbout).init();
     window.app.controller.settings = (new ControllerSettings).init();
@@ -384,8 +402,16 @@ document.getElementById('wrap').ondragover = function (e) {
 
 $(document).on('keydown', function(e){
     if ( e.ctrlKey && e.which == 79 ) {
-        if ($('.action-panel').filter('.recents, .open, .welcome').is(':visible')) {
+        if ($('.action-panel').filter('.recents, .open, .welcome, .new').is(':visible')) {
             openFile(OPEN_FILE_FOLDER, '');
+        }
+    } else
+    if ( e.ctrlKey && !e.shiftKey && !e.altKey && e.which == 78 ) {
+        // Ctrl+N: blank document of this application, as in Office
+        const _app = SOS.currentApp();
+        if ( !_app.isSuite() && !$('.dlg:visible, .modal:visible').length ) {
+            e.preventDefault();
+            SOS.actions.createBlank(_app.newTypes[0]);
         }
     }
 });
