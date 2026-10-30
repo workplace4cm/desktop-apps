@@ -878,6 +878,17 @@ CMainWindow * CAscApplicationManagerWrapper::prepareMainWindow(const QRect& r)
     additional.append("&osver=winxp");
 #endif
 
+    // Secure Office Suite: --app=writer|sheet|presentation|pdf gives the start
+    // page that application's identity, templates and recent documents.
+    for (const auto& arg: InputArgs::arguments()) {
+        if ( arg.rfind(L"--app=", 0) == 0 ) {
+            const std::wstring app_id = arg.substr(6);
+            if ( app_id == L"writer" || app_id == L"sheet" || app_id == L"presentation" || app_id == L"pdf" )
+                additional.append("&app=" + QString::fromStdWString(app_id));
+            break;
+        }
+    }
+
     std::wstring start_path = ("file:///" + data_path + additional).toStdWString();
     _startPanel->GetCefView()->load(start_path);
 

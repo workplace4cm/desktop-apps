@@ -1,0 +1,489 @@
+// ==========================================================================
+// Secure Office Suite: start page components (Office-style)
+//
+// Colours, type and spacing come from ../sos/tokens.less, shared with the
+// editors. The application identity is set on <body data-sos-app="..."> by
+// SOS.applyIdentity(); every rule below reads --sos-app-* properties, so the
+// same rules serve the suite and each application.
+// ==========================================================================
+
+@import (reference) '../sos/tokens.less';
+
+:root {
+  .sos-root-tokens();
+}
+
+// --------------------------------------------------------------------------
+// Identity
+// --------------------------------------------------------------------------
+
+body,
+[data-sos-app="suite"] { .sos-app-tokens(suite); }
+[data-sos-app="writer"] { .sos-app-tokens(writer); }
+[data-sos-app="sheet"] { .sos-app-tokens(sheet); }
+[data-sos-app="presentation"] { .sos-app-tokens(presentation); }
+[data-sos-app="pdf"] { .sos-app-tokens(pdf); }
+
+.theme-type-dark {
+  &[data-sos-app="suite"], [data-sos-app="suite"] { .sos-app-tokens-dark(suite); }
+  &[data-sos-app="writer"], [data-sos-app="writer"] { .sos-app-tokens-dark(writer); }
+  &[data-sos-app="sheet"], [data-sos-app="sheet"] { .sos-app-tokens-dark(sheet); }
+  &[data-sos-app="presentation"], [data-sos-app="presentation"] { .sos-app-tokens-dark(presentation); }
+  &[data-sos-app="pdf"], [data-sos-app="pdf"] { .sos-app-tokens-dark(pdf); }
+}
+
+// --------------------------------------------------------------------------
+// Application badge
+// --------------------------------------------------------------------------
+
+.sos-app-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: @sos-radius-small;
+  background-color: var(--sos-app-accent);
+  color: var(--sos-app-on-accent);
+  font: @sos-font-weight-semibold 16px/1 @sos-font-family;
+  letter-spacing: -.02em;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .25);
+
+  &[data-sos-app="pdf"] {
+    font-size: 11px;
+  }
+
+  &--suite {
+    background-color: #fff;
+  }
+
+  &__logo {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+// --------------------------------------------------------------------------
+// Backstage rail (left navigation)
+// --------------------------------------------------------------------------
+
+.main-column.col-left.tool-menu {
+  min-width: @sos-backstage-rail-width;
+  max-width: @sos-backstage-rail-width;
+  padding: 0 0 @sos-space-3;
+  gap: 2px;
+  background-color: var(--sos-app-accent);
+  border: 0 none;
+  color: var(--sos-app-on-accent);
+
+  .theme-type-dark & {
+    background-color: var(--sos-app-accent-dark);
+  }
+
+  > li.menu-item:not(.separator):not(.devider) {
+    border-radius: 0;
+    transition: background-color @sos-motion-fast ease-out;
+
+    &:hover {
+      background-color: fade(#fff, 12%);
+    }
+
+    &:active {
+      background-color: fade(#000, 12%);
+    }
+
+    &.selected {
+      background-color: fade(#000, 20%);
+      outline: 0 none;
+      box-shadow: inset 4px 0 0 var(--sos-app-on-accent);
+
+      .rtl & {
+        box-shadow: inset -4px 0 0 var(--sos-app-on-accent);
+      }
+    }
+
+    a {
+      height: 44px;
+      padding: @sos-space-2 @sos-space-4;
+      gap: @sos-space-3;
+      color: var(--sos-app-on-accent);
+      font-family: @sos-font-family;
+      font-size: 14px;
+
+      &:focus-visible {
+        outline: 2px solid var(--sos-app-on-accent);
+        outline-offset: -2px;
+      }
+    }
+
+    .icon-box {
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      border: 0 none;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    // png fallbacks at fractional scale: the light variant sits at +24px/+20px
+    i.icon.tool-icon { background-position-x: 24px; }
+    i.icon.tool-icon__20 { background-position-x: 20px; }
+  }
+
+  a[action] svg.icon:not(.icon-colored),
+  svg.icon:not(.icon-colored) {
+    fill: transparent;
+    stroke: var(--sos-app-on-accent);
+    color: var(--sos-app-on-accent);
+    --icon-gray-primary: var(--sos-app-on-accent);
+  }
+
+  > li.menu-item.separator {
+    border-bottom-color: fade(#fff, 25%);
+  }
+}
+
+.sos-rail-head {
+  display: flex;
+  align-items: center;
+  gap: @sos-space-3;
+  min-height: 64px;
+  padding: @sos-space-4 @sos-space-4 @sos-space-3;
+  margin-bottom: @sos-space-2;
+  font: @sos-font-weight-semibold @sos-font-size-subtitle @sos-font-family;
+  color: var(--sos-app-on-accent);
+  overflow: hidden;
+
+  &__name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+// --------------------------------------------------------------------------
+// Home page
+// --------------------------------------------------------------------------
+
+.recent-panel-container {
+  text-align: left;
+  font-family: @sos-font-family;
+
+  .rtl & {
+    text-align: right;
+  }
+}
+
+.sos-app-header {
+  display: flex;
+  align-items: center;
+  gap: @sos-space-3;
+  padding: @sos-space-6 @sos-space-4 @sos-space-5;
+
+  .sos-app-badge {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+
+    &[data-sos-app="pdf"] { font-size: 13px; }
+    .sos-app-badge__logo { width: 32px; height: 32px; }
+  }
+
+  &__titles {
+    min-width: 0;
+  }
+
+  &__brand {
+    font-size: @sos-font-size-caption;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: @text-secondary;
+  }
+
+  &__name {
+    margin: 0;
+    font: @sos-font-weight-semibold @sos-font-size-display/1.2 @sos-font-family;
+    color: @text-normal;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__greeting {
+    margin-inline-start: auto;
+    font-size: @sos-font-size-subtitle;
+    color: @text-secondary;
+    white-space: nowrap;
+  }
+}
+
+.sos-section {
+  padding: 0 @sos-space-4 @sos-space-6;
+
+  &__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: @sos-space-4;
+    margin-bottom: @sos-space-3;
+  }
+
+  &__title {
+    margin: 0;
+    font: @sos-font-weight-semibold @sos-font-size-subtitle @sos-font-family;
+    color: @text-normal;
+  }
+}
+
+.sos-link-button {
+  padding: @sos-space-1 @sos-space-2;
+  border: 0 none;
+  border-radius: @sos-radius-small;
+  background: transparent;
+  color: var(--sos-app-accent);
+  font: @sos-font-size-body @sos-font-family;
+  cursor: pointer;
+
+  .theme-type-dark & {
+    color: var(--sos-app-accent-night);
+  }
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--sos-app-accent);
+    outline-offset: 1px;
+  }
+}
+
+// Recent list title row: title on the left, "Open other files" on the right.
+#box-recent .file-list-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: @sos-space-4;
+
+  h3 {
+    font: @sos-font-weight-semibold @sos-font-size-subtitle @sos-font-family;
+  }
+}
+
+// --------------------------------------------------------------------------
+// Template gallery
+// --------------------------------------------------------------------------
+
+.sos-gallery__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, @sos-template-card-width));
+  gap: @sos-space-4;
+}
+
+.sos-card {
+  display: flex;
+  flex-direction: column;
+  gap: @sos-space-1;
+  padding: @sos-space-2;
+  border-radius: @sos-radius-medium;
+  cursor: pointer;
+  outline: 0 none;
+  transition: background-color @sos-motion-fast ease-out;
+
+  &:hover {
+    background-color: @highlight-button-hover;
+
+    .sos-card__thumb {
+      border-color: var(--sos-app-accent);
+      box-shadow: @sos-shadow-card-hover;
+    }
+  }
+
+  &:focus-visible .sos-card__thumb {
+    border-color: var(--sos-app-accent);
+    box-shadow: 0 0 0 2px var(--sos-app-accent);
+  }
+
+  &__thumb {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 132px;
+    border: 1px solid @border-regular-control;
+    border-radius: @sos-radius-small;
+    background-color: @background-action-panel;
+    box-shadow: @sos-shadow-card;
+    overflow: hidden;
+    transition: box-shadow @sos-motion-fast ease-out, border-color @sos-motion-fast ease-out;
+
+    &--missing::after {
+      content: '';
+      width: 40%;
+      height: 60%;
+      border: 2px dashed @border-regular-control;
+      border-radius: @sos-radius-small;
+    }
+  }
+
+  &--browse &__thumb {
+    border-style: dashed;
+    box-shadow: none;
+  }
+
+  &__icon {
+    width: 72px;
+    height: 96px;
+  }
+
+  &--browse &__icon {
+    width: 56px;
+    height: 56px;
+  }
+
+  &--template &__icon {
+    width: 64px;
+    height: 64px;
+    fill: var(--sos-app-accent);
+    opacity: .6;
+
+    .theme-type-dark & {
+      fill: var(--sos-app-accent-night);
+    }
+  }
+
+  &__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  &__name {
+    margin-top: @sos-space-1;
+    font: @sos-font-weight-semibold @sos-font-size-body @sos-font-family;
+    color: @text-normal;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__descr {
+    font: @sos-font-size-caption @sos-font-family;
+    color: @text-secondary;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+// Category filter
+.sos-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: @sos-space-2;
+  margin-bottom: @sos-space-4;
+}
+
+.sos-chip {
+  padding: @sos-space-1 @sos-space-3;
+  border: 1px solid @border-regular-control;
+  border-radius: 14px;
+  background: transparent;
+  color: @text-normal;
+  font: @sos-font-size-body @sos-font-family;
+  text-transform: capitalize;
+  cursor: pointer;
+
+  &:hover {
+    background-color: @highlight-button-hover;
+  }
+
+  &--active,
+  &--active:hover {
+    border-color: var(--sos-app-accent);
+    background-color: var(--sos-app-accent);
+    color: var(--sos-app-on-accent);
+  }
+}
+
+// --------------------------------------------------------------------------
+// Backstage pages (New)
+// --------------------------------------------------------------------------
+
+.sos-page {
+  height: 100%;
+  overflow-y: auto;
+  padding: @sos-space-6 @sos-space-6 @sos-space-6 (@sos-space-6 + @sos-space-4);
+  text-align: left;
+  font-family: @sos-font-family;
+  color: @text-normal;
+
+  .rtl & {
+    text-align: right;
+    padding: @sos-space-6 (@sos-space-6 + @sos-space-4) @sos-space-6 @sos-space-6;
+  }
+
+  &__title {
+    margin: 0 0 @sos-space-5;
+    font: @sos-font-weight-semibold @sos-font-size-display/1.2 @sos-font-family;
+  }
+}
+
+// --------------------------------------------------------------------------
+// Responsive
+// --------------------------------------------------------------------------
+
+@media (max-width: @sos-bp-medium) {
+  .sos-app-header__greeting {
+    display: none;
+  }
+}
+
+// Narrow windows: the rail keeps only its icons.
+@media (max-width: @sos-bp-compact) {
+  .main-column.col-left.tool-menu {
+    min-width: @sos-backstage-rail-width-compact;
+    max-width: @sos-backstage-rail-width-compact;
+
+    > li.menu-item:not(.separator):not(.devider) a {
+      justify-content: center;
+      padding: @sos-space-2 0;
+
+      .text {
+        display: none;
+      }
+    }
+  }
+
+  .sos-rail-head {
+    justify-content: center;
+    padding: @sos-space-3 0;
+
+    &__name {
+      display: none;
+    }
+  }
+
+  .sos-app-header {
+    padding-top: @sos-space-5;
+
+    &__name {
+      font-size: @sos-font-size-title;
+    }
+  }
+
+  .sos-gallery__grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: @sos-space-2;
+  }
+
+  .sos-card__thumb {
+    height: 104px;
+  }
+
+  .sos-page {
+    padding: @sos-space-5 @sos-space-4;
+  }
+}

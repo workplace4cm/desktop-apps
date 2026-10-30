@@ -49,13 +49,6 @@
         // localStorage.removeItem('welcome');
 
 
-		//language=HTML
-		const welcomeBannerTemplate = !localStorage.getItem('welcome') ? `
-            <div id="area-welcome">
-                <h2 l10n>${_lang.welWelcome}</h2>
-                <p l10n class="text-normal">${_lang.welDescr}</p>
-            </div>` : '';
-
         //language=HTML
         args.tplPage = `
             <div class="action-panel ${args.action}">
@@ -64,8 +57,8 @@
                         <h1 l10n>${_lang.welWelcome}</h1>
                     </div>
 
-                    <section id="area-document-creation-grid"></section>
-                    ${welcomeBannerTemplate}
+                    <div id="area-sos-header"></div>
+                    <div id="area-sos-new"></div>
                     <section id="area-dnd-file"></section>
 
                     <div id="box-container">
@@ -84,6 +77,7 @@
                         <div id="box-recent">
                             <div class="file-list-title">
                                 <h3 l10n>${_lang.listRecentFileTitle}</h3>
+                                <button type="button" class="sos-link-button" id="sos-btn-open-other" l10n>${_lang.sosOpenOther}</button>
                             </div>
                             <div class="file-list-head text-normal">
                                 <div class="col-name" l10n>${_lang.colFileName}</div>
@@ -281,12 +275,15 @@
         let collectionRecents, collectionRecovers;
         let ppmenu;
         const ITEMS_LOAD_RANGE = 40;
+        const HOME_GALLERY_SIZE = 6;
 
         const _add_recent_block = function () {
             if (!this.rawRecents || !Object.keys(this.rawRecents).length) return;
 
             const _raw_block = this.rawRecents.slice(this.recentIndex, this.recentIndex + ITEMS_LOAD_RANGE);
-            const _files = utils.fn.parseRecent(_raw_block);
+            // each application lists only its own documents
+            const _app = SOS.currentApp();
+            const _files = utils.fn.parseRecent(_raw_block).filter(item => _app.accepts(item.format));
 
             let _check_block = {};
 
@@ -309,7 +306,7 @@
                 Object.assign(this.check_list, _check_block);
             }
 
-            if (_new_items_count === ITEMS_LOAD_RANGE) {
+            if (_raw_block.length === ITEMS_LOAD_RANGE) {
                 setTimeout(e => {
                     this.recentIndex += ITEMS_LOAD_RANGE;
                     _add_recent_block.call(this);
@@ -344,7 +341,8 @@
             else {
                 collectionRecovers.empty();
 
-                var files = utils.fn.parseRecent(params);
+                const _app = SOS.currentApp();
+                var files = utils.fn.parseRecent(params).filter(item => _app.accepts(item.format));
                 for (let item of files) {
                     collectionRecovers.add( new FileModel(item) );
                 }
@@ -672,65 +670,30 @@
                 this.dndZone = new DnDFileZone();
                 this.dndZone.render(this.view.$panel.find("#area-dnd-file"));
 
-                const docGrid = new DocumentCreationGrid({
-                    documentTypes: [
-                        {
-                            id: 'word',
-                            title: utils.Lang.newDoc,
-                            langKey: 'newDoc',
-                            formatLabel: {
-                                value: 'DOCX',
-                                gradientColorStart: '#4298C5',
-                                gradientColorEnd: '#2D84B2',
-                                bgColorWinXP: '#287ca9',
-                            },
-                            icon: '#docx-big',
-                        },
-                        {
-                            id: 'cell',
-                            title: utils.Lang.newXlsx,
-                            langKey: 'newXlsx',
-                            formatLabel: {
-                                value: 'XLSX',
-                                gradientColorStart: '#5BB514',
-                                gradientColorEnd: '#318C2B',
-                                bgColorWinXP: '#3aa133',
-                            },
-                            icon: '#xlsx-big',
-                        },
-                        {
-                            id: 'slide',
-                            title: utils.Lang.newPptx,
-                            langKey: 'newPptx',
-                            formatLabel: {
-                                value: 'PPTX',
-                                gradientColorStart: '#F4893A',
-                                gradientColorEnd: '#DE7341',
-                                bgColorWinXP: '#f36700',
-                            },
-                            icon: '#pptx-big',
-                        },
-                        {
-                            id: 'form',
-                            title: utils.Lang.newForm,
-                            langKey: 'newForm',
-                            formatLabel: {
-                                value: 'PDF',
-                                gradientColorStart: '#F36653',
-                                gradientColorEnd: '#D2402D',
-                                bgColorWinXP: '#e54d39',
-                            },
-                            icon: '#pdf-big',
-                        }
-                    ],
-                    onDocumentSelect: (docType) => {
-                        window.sdk.command("create:new", docType);
-                    }
-                });
+                new SOS.AppHeader().render(this.view.$panel.find('#area-sos-header'));
+
+                const gallery = new SOS.TemplateGallery({limit: HOME_GALLERY_SIZE});
+                const newSection = new SOS.Section({
+                    cls: 'sos-section--new',
+                    title: utils.Lang.sosNew,
+                    langKey: 'sosNew',
+                    actions: [{
+                        caption: utils.Lang.sosMoreTemplates,
+                        langKey: 'sosMoreTemplates',
+                        handler: () => selectAction('new'),
+                    }],
+                }).render(this.view.$panel.find('#area-sos-new'));
+                gallery.render(newSection.$body);
+
+                // "More templates" only when the New page has more than the Home strip
+                const _update_more = () => newSection.$el.find('.sos-section__actions')
+                        .toggle(new SOS.TemplateGallery().cards().length > HOME_GALLERY_SIZE);
+                _update_more();
+                CommonEvents.on('sos:templates', _update_more);
+
+                this.view.$panel.find('#sos-btn-open-other').on('click', () => openFile(OPEN_FILE_FOLDER, ''));
 
                 CommonEvents.on('lang:changed', _init_ppmenu.bind(this));
-
-                docGrid.render(this.view.$panel.find("#area-document-creation-grid"));
 
                 $('#idx-recent-filter', this.view.$panel).on('input', _on_filter_recents.bind(this));
 

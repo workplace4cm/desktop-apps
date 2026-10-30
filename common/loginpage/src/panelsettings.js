@@ -33,7 +33,7 @@
     const THEME_TYPE_DARK = 'dark';
     const THEME_TYPE_SYSTEM = 'system';
 
-    const THEME_ID_DEFAULT_LIGHT = 'theme-white';
+    const THEME_ID_DEFAULT_LIGHT = 'theme-light';
     const THEME_ID_DEFAULT_DARK = 'theme-night';
 
     const themes_map = {

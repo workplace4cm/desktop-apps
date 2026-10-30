@@ -1,0 +1,133 @@
+// ==========================================================================
+// Secure Office Suite design tokens
+// ==========================================================================
+// One source of truth for the suite's look, shared by the start page
+// (desktop-apps/common/loginpage/src/sos/tokens.less) and the editors
+// (web-apps/theme/secure-office-suite/assets/less/sos/tokens.less).
+// The two copies must stay byte-identical; DesktopEditors CI checks it.
+//
+// This file only declares LESS variables and mixins. It emits no CSS by
+// itself, so each consumer decides which selectors receive the tokens.
+// ==========================================================================
+
+// Brand (Plume logo)
+@sos-brand-navy: #1B2A86;
+@sos-brand-blue: #62AFEC;
+@sos-brand-red: #D7262E;
+
+// Application identities. Each colour carries white text at 4.5:1 or better.
+//   accent        title bar, Backstage rail, primary buttons
+//   accent-dark   hover/pressed on accent, tab text on light backgrounds
+//   accent-light  selected rows and cards on light backgrounds
+//   accent-night  accent used on dark themes (lighter, so it reads on #222)
+@sos-writer-accent: #2D5AA6;
+@sos-writer-accent-dark: #1F4385;
+@sos-writer-accent-light: #E3EBF7;
+@sos-writer-accent-night: #7FA6E8;
+
+@sos-sheet-accent: #1F7A4D;
+@sos-sheet-accent-dark: #155C39;
+@sos-sheet-accent-light: #E0F0E7;
+@sos-sheet-accent-night: #6CC596;
+
+@sos-presentation-accent: #B9482A;
+@sos-presentation-accent-dark: #93361D;
+@sos-presentation-accent-light: #F8E6E0;
+@sos-presentation-accent-night: #F08F72;
+
+@sos-pdf-accent: #B7262E;
+@sos-pdf-accent-dark: #8E1B22;
+@sos-pdf-accent-light: #F8E1E2;
+@sos-pdf-accent-night: #F07F86;
+
+@sos-suite-accent: @sos-brand-navy;
+@sos-suite-accent-dark: #131E63;
+@sos-suite-accent-light: #E4E7F6;
+@sos-suite-accent-night: #8C9BF0;
+
+// Typography
+@sos-font-family: 'Segoe UI', 'Open Sans', 'Noto Sans', 'Liberation Sans', Arial, sans-serif;
+@sos-font-size-caption: 11px;
+@sos-font-size-body: 13px;
+@sos-font-size-subtitle: 15px;
+@sos-font-size-title: 20px;
+@sos-font-size-display: 28px;
+@sos-font-weight-regular: 400;
+@sos-font-weight-semibold: 600;
+
+// Spacing scale (4px grid)
+@sos-space-1: 4px;
+@sos-space-2: 8px;
+@sos-space-3: 12px;
+@sos-space-4: 16px;
+@sos-space-5: 24px;
+@sos-space-6: 32px;
+@sos-space-7: 48px;
+
+// Shape and depth
+@sos-radius-small: 4px;
+@sos-radius-medium: 8px;
+@sos-shadow-card: 0 1px 2px rgba(0, 0, 0, .12), 0 0 1px rgba(0, 0, 0, .08);
+@sos-shadow-card-hover: 0 4px 12px rgba(0, 0, 0, .16), 0 0 1px rgba(0, 0, 0, .1);
+@sos-motion-fast: 120ms;
+
+// Layout
+@sos-backstage-rail-width: 220px;
+@sos-backstage-rail-width-compact: 56px;
+@sos-template-card-width: 168px;
+@sos-template-thumb-height: 216px;
+
+// Responsive breakpoints (window width)
+@sos-bp-compact: 720px;
+@sos-bp-medium: 1024px;
+
+// --------------------------------------------------------------------------
+// Mixins
+// --------------------------------------------------------------------------
+
+// Shared custom properties for every surface.
+.sos-root-tokens() {
+    --sos-brand-navy: @sos-brand-navy;
+    --sos-brand-blue: @sos-brand-blue;
+    --sos-brand-red: @sos-brand-red;
+    --sos-font-family: @sos-font-family;
+    --sos-radius-small: @sos-radius-small;
+    --sos-radius-medium: @sos-radius-medium;
+    --sos-shadow-card: @sos-shadow-card;
+    --sos-shadow-card-hover: @sos-shadow-card-hover;
+}
+
+// Custom properties of one application identity:
+//   .sos-app-tokens(writer); .sos-app-tokens(sheet); ...
+.sos-app-tokens(@app) {
+    @accent: "sos-@{app}-accent";
+    @accent-dark: "sos-@{app}-accent-dark";
+    @accent-light: "sos-@{app}-accent-light";
+    @accent-night: "sos-@{app}-accent-night";
+
+    --sos-app-accent: @@accent;
+    --sos-app-accent-dark: @@accent-dark;
+    --sos-app-accent-light: @@accent-light;
+    --sos-app-accent-night: @@accent-night;
+    --sos-app-on-accent: #fff;
+}
+
+// On dark themes the light tint becomes a translucent accent wash.
+.sos-app-tokens-dark(@app) {
+    @accent-night: "sos-@{app}-accent-night";
+
+    --sos-app-accent-light: fade(@@accent-night, 18%);
+}
+
+// Application display names. Product names, so they are not translated.
+@sos-writer-name: "EuroOffice Writer";
+@sos-sheet-name: "EuroOffice Sheet";
+@sos-presentation-name: "EuroOffice Presentation";
+@sos-pdf-name: "EuroOffice PDF";
+@sos-suite-name: "Secure Office Suite";
+
+.sos-app-name(@app) {
+    @name: "sos-@{app}-name";
+
+    --sos-app-name: @@name;
+}
