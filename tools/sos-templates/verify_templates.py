@@ -3,7 +3,7 @@
 Secure Office Suite: checks every template of the start-page library.
 
     python3 verify_templates.py --manifest common/templates/sos/manifest.js \
-        [--engine /opt/<package>] [--work DIR] [--require-pdf]
+        [--engine /opt/<package>] [--work DIR]
 
 Without --engine the check is static: the manifest is valid, every listed
 file and thumbnail ships, and every file is a well-formed template of the
@@ -19,10 +19,10 @@ creates a document from it:
                                     not a template, so the template is never
                                     overwritten
   3. that document -> Editor.bin   the saved document opens again
-  4. template -> PDF               layout through the editors' own engine
-                                    (best effort unless --require-pdf)
-PDF form templates are opened by the PDF editor directly; they are checked
-for structure and rendered to an image by the converter.
+PDF form templates go through step 1 too: the shell creates a new form from
+them the same way (template -> Editor.bin for the form editor).
+Layout, printing and PDF export happen inside the editor window and are not
+part of this check.
 
 Exit status 0 when every template passes. Standard library only.
 """
@@ -55,8 +55,6 @@ FORMATS = {
     'FILE_DOCUMENT_OFORM_PDF': ('.pdf', 'pdf', None, None, None, None, None),
 }
 
-FORMAT_PDF = 513
-FORMAT_PNG = 1029
 CANVAS = 8192
 
 THUMB_SIZE = (304, 264)
@@ -212,22 +210,8 @@ class Engine:
         self.env = dict(os.environ)
         self.env['LD_LIBRARY_PATH'] = os.pathsep.join(
             [self.converter, self.app_dir] + ([self.env['LD_LIBRARY_PATH']] if self.env.get('LD_LIBRARY_PATH') else []))
-        self.fonts = os.path.join(work, 'fonts')
-        self._make_fonts()
-
-    def _make_fonts(self):
-        """The desktop app builds its font list at start-up; do the same with
-        the converter's own tool, or fall back to the fonts it ships."""
-        os.makedirs(self.fonts, exist_ok=True)
-        gen = [os.path.join(d, f) for d, _, fs in os.walk(self.app_dir) for f in fs if f == 'allfontsgen']
-        font_dirs = [os.path.join(self.app_dir, 'fonts')]
-        if gen:
-            cmd = [gen[0], '--input=' + ','.join(font_dirs), '--allfonts=' + os.path.join(self.fonts, 'AllFonts.js'),
-                   '--selection=' + os.path.join(self.fonts, 'font_selection.bin'), '--use-system=true']
-            r = subprocess.run(cmd, env=self.env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=600)
-            print('allfontsgen: exit %d' % r.returncode)
-        else:
-            print('allfontsgen: not shipped; the converter uses its defaults')
+        # the font list the package ships next to the converter
+        self.fonts = self.converter
 
     def convert(self, src, dst, fmt, tmp_name, extra=''):
         tmp = os.path.join(self.work, tmp_name)
@@ -254,7 +238,7 @@ class Engine:
         return dst
 
 
-def engine_check(engine, e, path, fmt, require_pdf):
+def engine_check(engine, e, path, fmt):
     """Returns notes for the report; raises Failure on a hard error."""
     notes = []
     case = os.path.join(engine.work, e['id'])
@@ -267,10 +251,8 @@ def engine_check(engine, e, path, fmt, require_pdf):
     before = open(path, 'rb').read()
 
     if e['format'] == 'FILE_DOCUMENT_OFORM_PDF':
-        png = engine.convert(copy, os.path.join(case, 'page1.png'), FORMAT_PNG, e['id'] + '-png',
-                             '<m_oThumbnail><format>4</format><aspect>1</aspect><first>true</first>'
-                             '<width>608</width><height>528</height></m_oThumbnail>')
-        notes.append('rendered (%d bytes)' % os.path.getsize(png))
+        bin1 = engine.convert(copy, os.path.join(case, 'Editor.bin'), CANVAS, e['id'] + '-open')
+        notes.append('opens as a new form (%d KB)' % (os.path.getsize(bin1) // 1024))
     else:
         ext, _, main_part, _, _, save_fmt, doc_ct = fmt
         bin1 = engine.convert(copy, os.path.join(case, 'Editor.bin'), CANVAS, e['id'] + '-open')
@@ -284,16 +266,6 @@ def engine_check(engine, e, path, fmt, require_pdf):
                 raise Failure('saved document has no %s' % main_part)
         engine.convert(saved, os.path.join(case, 'Reopen.bin'), CANVAS, e['id'] + '-reopen')
         notes.append('opens, saves as %s, reopens' % doc_ext)
-        try:
-            pdf = engine.convert(copy, os.path.join(case, 'print.pdf'), FORMAT_PDF, e['id'] + '-pdf')
-            with open(pdf, 'rb') as f:
-                if not f.read(5) == b'%PDF-':
-                    raise Failure('PDF output is not a PDF')
-            notes.append('lays out to PDF (%d KB)' % (os.path.getsize(pdf) // 1024))
-        except Failure as err:
-            if require_pdf:
-                raise
-            notes.append('PDF layout skipped: %s' % err)
 
     if open(path, 'rb').read() != before:
         raise Failure('the template file changed')
@@ -307,7 +279,6 @@ def main():
     ap.add_argument('--manifest', required=True)
     ap.add_argument('--engine', help='installed or extracted application folder')
     ap.add_argument('--work', help='scratch folder (kept for inspection)')
-    ap.add_argument('--require-pdf', action='store_true')
     args = ap.parse_args()
 
     root = os.path.dirname(os.path.abspath(args.manifest))
@@ -337,7 +308,7 @@ def main():
                 check_ooxml(path, fmt)
             else:
                 check_pdf(path)
-            notes = engine_check(engine, e, path, fmt, args.require_pdf) if engine else ['static checks']
+            notes = engine_check(engine, e, path, fmt) if engine else ['static checks']
             per_app[e['app']] += 1
             print('ok   %-34s %s' % (label, '; '.join(notes)))
         except Failure as err:

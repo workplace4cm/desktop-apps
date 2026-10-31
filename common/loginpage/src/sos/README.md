@@ -30,8 +30,9 @@ DesktopEditors build fails if the two differ. Change both together.
 |-----------|--------------|
 | `SOS.AppHeader` | Brand line, application name and greeting |
 | `SOS.Section` | Titled block with optional action buttons |
-| `SOS.TemplateGallery` | Cards for blank documents, registered templates and "Template from file…"; category filter; arrow-key navigation |
-| `SOS.templates` | Local template registry: `register()`, `forApp()`, `categories()` |
+| `SOS.TemplateGallery` | Cards for blank documents, registered templates and "Template from file…"; category filter, search and My Templates link on the New page; arrow-key navigation |
+| `SOS.TemplatePreview` | Preview dialog of a template: larger thumbnail, description, category, file type, **Create**; arrows step through the templates |
+| `SOS.templates` | Local template registry: `register()`, `forApp()`, `categories()`, `unavailable()`; file checks and My Templates from the shell |
 | `SOS.actions` | The desktop commands behind the components (`create:new`, `open:folder`) |
 
 `panelnew.js` is the Backstage "New" page built from the gallery. The Home
@@ -40,29 +41,22 @@ which shows only the current application's documents.
 
 ## Templates
 
-The galleries list local templates only. `common/templates/sos/manifest.js`
-is installed as `converter/templates/sos/manifest.js` next to the start page,
-which loads it with a plain `<script>` tag. It calls
-`SOS.templates.registerFrom(document.currentScript.src, [...])` with paths
-relative to itself:
+The galleries list local templates only: the library installed with the app
+and the user's My Templates folder. See `common/templates/sos/README.md` for
+the library, the manifest format and how to add templates.
 
-```js
-{app: 'writer', name: 'Business letter', description: 'Formal letter with letterhead',
- category: 'Business', file: 'writer/business-letter.dotx', format: 'FILE_DOCUMENT_DOTX',
- thumb: 'thumbs/writer-business-letter.png'}
-```
-
-A card runs `create:new {"template": {type, path}}`; the shell opens a new,
-untitled document from a copy, so the template file never changes, and it
-reports a missing or unreadable template instead of opening it. A thumbnail
-that fails to load shows an empty frame.
-
-The suite's own templates (Writer: letter, resume, report, meeting notes,
-memo; Sheet: budget, calendar, invoice, financial report; Presentation:
-business, project, education) and all thumbnails are built by
-`tools/sos-templates/make_templates.py`. The other entries reuse templates
-already shipped in `common/templates/EN`, and EuroOffice PDF lists the
-fillable PDF forms from there.
+- `converter/templates/sos/manifest.js` is loaded with a plain `<script>` tag
+  and calls `SOS.templates.registerFrom(src, {schema: 1, templates: [...]})`.
+- The page then sends `sos:templates:check {items: [{id, path, app}]}`. The
+  shell answers `sos:templates:status {status: {id: ok|missing|damaged|...},
+  user: [...], userFolder}`; `user` lists My Templates. Templates that are not
+  `ok` are left out of the gallery and named in a notice on the New page. The
+  check runs again when the window regains focus.
+- A card opens `SOS.TemplatePreview`; **Create** (or Enter) runs `create:new {"template": {id, app, type, path}}`. The shell
+  accepts only paths inside the template library, checks the file again and
+  creates a new, untitled document from a copy. When the check fails it
+  replies `sos:templates:failed {id, status}` and explains in a message.
+- `sos:templates:folder` creates and opens My Templates.
 
 ## Open
 

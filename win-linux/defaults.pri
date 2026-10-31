@@ -106,6 +106,7 @@ HEADERS += \
     $$PWD/src/chelp.h \
     $$PWD/src/cfilechecker.h \
     $$PWD/src/crecentdocuments.h \
+    $$PWD/src/ctemplatelibrary.h \
     $$PWD/src/clogger.h \
     $$PWD/src/clangater.h \
     $$PWD/src/cprintdata.h \
@@ -148,6 +149,7 @@ SOURCES += \
     $$PWD/src/chelp.cpp \
     $$PWD/src/cfilechecker.cpp \
     $$PWD/src/crecentdocuments.cpp \
+    $$PWD/src/ctemplatelibrary.cpp \
     $$PWD/src/clogger.cpp \
     $$PWD/src/clangater.cpp \
     $$PWD/src/cprintdata.cpp \
