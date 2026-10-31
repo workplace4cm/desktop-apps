@@ -496,3 +496,65 @@ body,
     padding: @sos-space-5 @sos-space-4;
   }
 }
+
+// Recent documents: why an entry can't be opened, in the location column
+.sos-recent-status {
+  margin-right: @sos-space-2;
+  padding: 0 @sos-space-1;
+  border-radius: @sos-radius-small;
+  background-color: @highlight-button-hover;
+  color: @text-normal;
+  font-weight: @sos-font-weight-semibold;
+
+  .rtl & {
+    margin-right: 0;
+    margin-left: @sos-space-2;
+  }
+}
+
+#box-recent .row.unavail .sos-recent-status {
+  opacity: 1;
+}
+
+// Missing-file and clear-history dialogs
+.dlg.dlg-sos-recent {
+  .title {
+    padding: @sos-space-4 @sos-space-4 @sos-space-2 @sos-space-6;
+  }
+
+  .body {
+    padding: 0 @sos-space-6 @sos-space-6;
+    font: @sos-font-size-body @sos-font-family;
+    color: @text-normal;
+  }
+
+  .sos-dlg__text {
+    margin: 0 0 @sos-space-4;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+
+  .sos-dlg__check {
+    display: flex;
+    align-items: center;
+    gap: @sos-space-2;
+    margin-bottom: @sos-space-4;
+  }
+
+  .sos-dlg__buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: @sos-space-2;
+
+    .btn {
+      min-width: 88px;
+      padding: 0 @sos-space-3;
+
+      &:not(.btn--landing) {
+        background-color: transparent;
+        color: @text-normal;
+      }
+    }
+  }
+}

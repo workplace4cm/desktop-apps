@@ -38,6 +38,7 @@
 #include "cprintdata.h"
 #include "clogger.h"
 #include "common/File.h"
+#include "crecentdocuments.h"
 #include <QApplication>
 #include <QJsonParseError>
 #ifdef _WIN32
@@ -240,6 +241,10 @@ public:
             NSEditorApi::CAscExecCommand & data = *static_cast<NSEditorApi::CAscExecCommand *>(event.m_pData);
             const std::wstring & cmd = data.get_Command();
 
+            if ( cmd.rfind(L"sos:recents:", 0) == 0 ) {
+                handleRecentsCommand(cmd.substr(12), data.get_Param(), event.m_nSenderId);
+                return true;
+            } else
             if ( cmd.compare(L"open:recent") == 0 ) {
                 QJsonObject objRoot = Utils::parseJsonString(data.get_Param());
                 if ( !objRoot.isEmpty() ) {
@@ -354,7 +359,9 @@ public:
                         opts.name = m_appmanager.newFileName(type);
                         opts.parent_id = event.m_nSenderId;
 
-                        openDocument(opts);
+                        int view_id = -1;
+                        if ( openDocument(opts, &view_id) && view_id > -1 )
+                            CRecentDocuments::instance().expectTemplate(view_id, QString::fromStdWString(file_path));
                     }
                 } else if ( format.rfind(L"{\"template", 0) == 0 ) {
                     QJsonParseError jerror;
@@ -377,7 +384,10 @@ public:
                         opts.format = _f;
                         opts.parent_id = event.m_nSenderId;
 
-                        openDocument(opts);
+                        // listed in the recent documents when it is first saved
+                        int view_id = -1;
+                        if ( openDocument(opts, &view_id) && view_id > -1 )
+                            CRecentDocuments::instance().expectTemplate(view_id, _path);
                     }
                 } else {
                     int _f = format == L"word" ? AVS_OFFICESTUDIO_FILE_DOCUMENT_DOCX :
@@ -399,6 +409,83 @@ public:
         }
         }
         return false;
+    }
+
+    // Secure Office Suite recent documents: commands from start pages and editors
+    auto handleRecentsCommand(const std::wstring& op, const std::wstring& param, int sender) -> void
+    {
+        CRecentDocuments & recents = CRecentDocuments::instance();
+        const QJsonObject args = Utils::parseJsonString(param);
+        const QString path = args["path"].toString();
+
+        if ( op == L"get" ) {
+            m_appmanager.sendCommandTo(m_appmanager.GetViewById(sender), L"sos:recents", recents.snapshotJson().toStdWString());
+            recents.checkAvailability();
+        } else
+        if ( op == L"check" ) {
+            recents.checkAvailability();
+        } else
+        if ( op == L"pin" ) {
+            recents.setPinned(path, args["pinned"].toBool());
+        } else
+        if ( op == L"remove" ) {
+            // only the list entry: the document itself stays where it is
+            recents.remove(path);
+        } else
+        if ( op == L"clear" ) {
+            recents.clear(args["app"].toString(), args["pinned"].toBool(false));
+        } else
+        if ( (op == L"open" || op == L"explore" || op == L"locate") && !recents.contains(path) ) {
+            // pages may only open what the list holds
+            return;
+        } else
+        if ( op == L"open" || op == L"explore" ) {
+            const QString status = CRecentDocuments::checkPath(path);
+            if ( status != "ok" ) {
+                // the page offers to find the file or to remove it from the list
+                const QJsonObject reply{{"path", path}, {"status", status}, {"action", QString::fromStdWString(op)}};
+                m_appmanager.sendCommandTo(m_appmanager.GetViewById(sender), L"sos:recents:missing", Utils::stringifyJson(reply).toStdWString());
+                recents.checkAvailability();
+            } else
+            if ( op == L"explore" ) {
+                Utils::openFileLocation(path);
+            } else {
+                openRecentPath(path, sender);
+            }
+        } else
+        if ( op == L"locate" ) {
+            // a moved or renamed file: pick it, starting from the nearest folder that still exists
+            QString folder = QFileInfo(path).absolutePath();
+            while ( !folder.isEmpty() && !QDir(folder).exists() ) {
+                const QString up = QFileInfo(folder).absolutePath();
+                folder = up == folder ? QString() : up;
+            }
+
+            const QString app = CRecentDocuments::appForPath(path);
+            const QString picked = CEditorTools::getlocalfile(QString("app:%1|%2").arg(app, folder).toStdWString(), sender);
+            if ( !picked.isEmpty() ) {
+                if ( !recents.relocate(path, picked) )
+                    recents.registerDocument(picked, CRecentDocuments::Event::Opened);
+                openRecentPath(picked, sender);
+            }
+        }
+    }
+
+    auto openRecentPath(const QString& path, int sender) -> void
+    {
+        if ( bringEditorToFront(path) )
+            return;
+
+        QFileInfo _info(path);
+        COpenOptions opts{_info.fileName(), etLocalFile};
+        opts.parent_id = sender;
+        opts.url = path;
+        opts.wurl = path.toStdWString();
+
+        if ( !openDocument(opts) ) {
+            CMessage::error(m_appmanager.mainWindow() ? m_appmanager.mainWindow()->handle() : nullptr,
+                            QObject::tr("File %1 cannot be opened or doesn't exists.").arg(_info.fileName().toHtmlEscaped()));
+        }
     }
 
     auto bringEditorToFront(int viewid) -> void
@@ -544,7 +631,7 @@ public:
         return m_appmanager.editorWindowFromViewId(viewid);
     }
 
-    auto openDocument(const COpenOptions& opts) -> bool
+    auto openDocument(const COpenOptions& opts, int * view_id = nullptr) -> bool
     {
         COpenOptions opts_ext{opts};
         if ( preferOpenEditorWindow() ) {
@@ -556,6 +643,8 @@ public:
             opts_ext.parent_widget = COpenOptions::eWidgetType::window;
             if (CEditorWindow * editor_win = CEditorWindow::create(rect, opts_ext)) {
                 editor_win->show(isMaximized);
+                if ( view_id && editor_win->mainView() )
+                    *view_id = editor_win->mainView()->cef()->GetId();
 
                 m_appmanager.m_vecEditors.push_back(size_t(editor_win));
                 if ( editor_win->isCustomWindowStyle() ) {
@@ -569,6 +658,8 @@ public:
             opts_ext.panel_size = mainWindow()->contentSize();
             opts_ext.parent_widget = COpenOptions::eWidgetType::tab;
             if (CTabPanel * panel = CEditorTools::createEditorPanel(opts_ext, mainWindow())) {
+                if ( view_id )
+                    *view_id = panel->cef()->GetId();
                 CAscTabData * panel_data = panel->data();
                 QRegularExpression re("^ascdesktop:\\/\\/(?:compare|merge|template)");
                 if ( re.match(QString::fromStdWString(panel_data->url())).hasMatch() ) {

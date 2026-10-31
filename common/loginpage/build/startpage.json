@@ -71,6 +71,7 @@
                     ,"../src/sdk.js"
                     ,"../src/sos/identity.js"
                     ,"../src/sos/store.js"
+                    ,"../src/sos/recents.js"
                     ,"../src/sos/components.js"
                     ,"../src/model.js"
                     ,"../src/menu.js"

@@ -27,6 +27,7 @@
 #include "components/cmessage.h"
 #include "ceditortools.h"
 #include "cfilechecker.h"
+#include "crecentdocuments.h"
 #include "OfficeFileFormats.h"
 #include "cproviders.h"
 #ifndef __OS_WIN_XP
@@ -607,6 +608,12 @@ bool CAscApplicationManagerWrapper::processCommonEvent(NSEditorApi::CAscCefMenuE
         m_private->selectSSLSertificate(event->get_SenderId());
 #endif
         return true; }
+    case ASC_MENU_EVENT_TYPE_CEF_DOCUMENT_NAME: {
+        // opened documents and every save register in the recent documents
+        CAscDocumentName * pData = static_cast<CAscDocumentName *>(event->m_pData);
+        CRecentDocuments::instance().onDocumentName(pData->get_Id(),
+                    QString::fromStdWString(pData->get_Path()), QString::fromStdWString(pData->get_Url()));
+        break; }
     case ASC_MENU_EVENT_TYPE_CEF_ONSAVE: {
         CAscDocumentOnSaveData * pData = reinterpret_cast<CAscDocumentOnSaveData *>(event->m_pData);
 
@@ -616,6 +623,7 @@ bool CAscApplicationManagerWrapper::processCommonEvent(NSEditorApi::CAscCefMenuE
         break; }
     case ASC_MENU_EVENT_TYPE_CEF_DESTROYWINDOW: {
         --m_countViews;
+        CRecentDocuments::instance().forgetView(event->get_SenderId());
 
         if ( !m_winsReporter.empty() ) {
             std::map<int, CPresenterWindow *>::const_iterator switer = m_winsReporter.find(event->get_SenderId());
@@ -1319,6 +1327,18 @@ void CAscApplicationManagerWrapper::initializeApp()
 {
     APP_CAST(_app);
     _app.m_private->initializeApp();
+
+    // recent documents: kept next to the engine's recents.xml in the user's profile
+    CRecentDocuments & recents = CRecentDocuments::instance();
+    recents.init(QString::fromStdWString(_app.m_oSettings.recover_path) + "/..");
+
+    QTimer * recents_timer = new QTimer(&_app);
+    recents_timer->setSingleShot(true);
+    recents_timer->setInterval(50);
+    connect(recents_timer, &QTimer::timeout, recents_timer, [] {
+        sendCommandToAllEditors(L"sos:recents", CRecentDocuments::instance().snapshotJson().toStdWString());
+    });
+    connect(&recents, &CRecentDocuments::changed, recents_timer, static_cast<void (QTimer::*)()>(&QTimer::start));
 
     if ( AscAppManager::IsUseSystemScaling() ) {
         AscAppManager::setUserSettings(L"force-scale", L"default");

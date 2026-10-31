@@ -36,7 +36,7 @@ DesktopEditors build fails if the two differ. Change both together.
 
 `panelnew.js` is the Backstage "New" page built from the gallery. The Home
 page (`panelrecent.js`) uses the header, a gallery strip and the recent list,
-which shows only the current application's formats.
+which shows only the current application's documents.
 
 ## Templates
 
@@ -85,4 +85,48 @@ one entry per application (`package/inno/common.iss`,
 `SOS.store.scope(id)` gives a namespaced, JSON-valued key/value store on top of
 the start page's local storage, which lives in the user profile and survives
 upgrades. Bad values fall back to defaults; changes reach subscribers in every
-window. Recent documents and pins stay in the desktop shell's own store.
+window. Recent documents have their own service (below).
+
+## Recent documents (`recents.js`)
+
+The desktop shell keeps the recent documents
+(`win-linux/src/crecentdocuments.cpp`): one list per application in
+`sos-recents.json`, in the user's profile folder next to the engine's
+`recents.xml`. `recents.js` is the page side.
+
+- Opened documents, the first save of a new or template-based document, every
+  later save and every Save As are registered by the shell from the editors'
+  document-name events. The engine's `recents.xml` is read at start and when
+  it changes, so documents opened while no start page showed are not missed;
+  its history (and pins) from earlier versions is imported once.
+- An entry has `path, name, ext, folder, app, pinned, origin` (`opened`,
+  `new`, `template`, `saveas`, `imported`), `template`, `created, opened,
+  saved, used` (ISO UTC), `size, modified` (from the last check) and
+  `status`: `ok`, `missing` (folder there, file not: moved, renamed or
+  deleted), `unreachable` (folder or drive not there), `noaccess` or `unknown`.
+  Files are checked off the UI thread.
+- One path is one entry (compared case-insensitively on Windows). Each list
+  keeps its pinned documents and the 50 most recently used others.
+- Pin, unpin, remove and clear change the list only; a document is never
+  touched. Removed or cleared entries leave a dated marker so the engine's
+  list can't bring them back until the document is used again, and they are
+  also removed from the engine's list.
+- Opening a missing document offers **Find file…** (a picker in the nearest
+  folder that still exists; the entry moves to the new place and keeps its
+  pin) or **Remove from list**.
+- The file is written atomically (temporary file, flushed, renamed); the
+  previous session's copy is kept as `sos-recents.json.bak`. A damaged file is
+  set aside as `.corrupt` and the backup, or else `recents.xml`, is loaded.
+  Fields a version doesn't know are kept, so upgrades and downgrades share the
+  file.
+
+```js
+SOS.recents.list('writer');                 // pinned first, then most recent
+SOS.recents.pin(entry, true);               // also remove, clear(app, withPinned), open, locate, explore
+CommonEvents.on('sos:recents', () => ...);  // lists changed
+```
+
+Commands to the shell are `sos:recents:get|check|pin|remove|clear|open|locate|explore`;
+it answers with `sos:recents` (all lists) and `sos:recents:missing`. The
+editors' File > Recent shows the same list for its application. Unit tests:
+`win-linux/tests/recentdocuments`.
