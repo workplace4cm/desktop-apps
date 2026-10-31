@@ -165,6 +165,7 @@ set(COMMON_HEADERS
     src/utils.h
     src/chelp.h
     src/cfilechecker.h
+    src/crecentdocuments.h
     src/clogger.h
     src/clangater.h
     src/cprintdata.h
@@ -208,6 +209,7 @@ set(COMMON_SOURCES
     src/casctabdata.cpp
     src/chelp.cpp
     src/cfilechecker.cpp
+    src/crecentdocuments.cpp
     src/clogger.cpp
     src/clangater.cpp
     src/cprintdata.cpp

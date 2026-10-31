@@ -362,6 +362,10 @@ function openFile(from, model) {
         if ( performance.now() - last_click_time < 1000 ) return;
         last_click_time = performance.now();
 
+        if (from == OPEN_FILE_RECENT && model && model.entry) {
+            // the recent-document service opens it, or reports a moved or missing file
+            SOS.recents.open(model.entry);
+        } else
         if (from == OPEN_FILE_FOLDER) {
             // "app:<id>|<folder>": the picker offers the application's formats first
             const _app = SOS.currentApp();

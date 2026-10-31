@@ -183,6 +183,20 @@ l10n.en = {
     sosGoodMorning: 'Good morning',
     sosGoodAfternoon: 'Good afternoon',
     sosGoodEvening: 'Good evening',
+    sosCancel: 'Cancel',
+    sosRecentMissing: 'Not found',
+    sosRecentUnreachable: 'Not available',
+    sosRecentNoAccess: 'No access',
+    sosRecentLocate: 'Find file…',
+    sosRecentRemove: 'Remove from list',
+    sosRecentCantOpen: 'Can’t open %1',
+    sosRecentMissingText: 'The file is no longer in %1. It may have been moved, renamed or deleted.',
+    sosRecentUnreachableText: 'The folder %1 can’t be reached. Connect the drive or network location and try again, or find the file somewhere else.',
+    sosRecentNoAccessText: 'You don’t have permission to open this file.',
+    sosRecentClear: 'Clear',
+    sosRecentClearTitle: 'Clear recent documents',
+    sosRecentClearText: 'This removes the documents from this list only. The files stay where they are.',
+    sosRecentClearPinned: 'Also remove pinned documents',
 }
 
 

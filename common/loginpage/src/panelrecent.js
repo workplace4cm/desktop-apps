@@ -145,8 +145,8 @@
                             ${info.name}<span class="ext">${info.ext}</span>
                         </p>
                     </div>
-                    <div class="col-location" title="${info.descr}">
-                        <!--              todo: icon here          -->
+                    <div class="col-location" title="${info.statusText ? info.statusText + ' · ' : ''}${info.descr}">
+                        ${info.statusText ? `<span class="sos-recent-status">${info.statusText}</span>` : ''}
                         ${info.descr}
                     </div>
             `;
@@ -277,33 +277,57 @@
         const ITEMS_LOAD_RANGE = 40;
         const HOME_GALLERY_SIZE = 6;
 
+        const _escape = str => $('<div>').text(String(str || '')).html();
+
+        const _status_text = {
+            missing: () => utils.Lang.sosRecentMissing,
+            unreachable: () => utils.Lang.sosRecentUnreachable,
+            noaccess: () => utils.Lang.sosRecentNoAccess,
+        };
+
+        const _format_date = function (iso) {
+            const d = new Date(iso);
+            if ( isNaN(d) ) return '';
+
+            const now = new Date();
+            if ( d.toDateString() === now.toDateString() )
+                return d.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+            return d.toLocaleDateString([], d.getFullYear() === now.getFullYear() ?
+                        {day: 'numeric', month: 'short'} : {day: 'numeric', month: 'short', year: 'numeric'});
+        };
+
+        const _app_icon = {writer: 'docx', sheet: 'xlsx', presentation: 'pptx', pdf: 'pdf'};
+
+        // a list entry of the recent-document service as a row model
+        const _item_from_entry = function (entry) {
+            const status = _status_text[entry.status];
+            return {
+                entry: entry,
+                fileid: entry.path.hashCode(),
+                format: document.getElementById(entry.ext) ? entry.ext : _app_icon[entry.app],
+                name: _escape(entry.name),
+                descr: _escape(entry.folder),
+                path: _escape(entry.path),
+                date: _format_date(entry.used),
+                pinned: !!entry.pinned,
+                pinid: entry.pinned ? -1 : 1,
+                exist: entry.status !== 'missing' && entry.status !== 'unreachable' && entry.status !== 'noaccess',
+                statusText: status ? _escape(status()) : '',
+            };
+        };
+
         const _add_recent_block = function () {
-            if (!this.rawRecents || !Object.keys(this.rawRecents).length) return;
+            if (!this.rawRecents || !this.rawRecents.length) return;
 
             const _raw_block = this.rawRecents.slice(this.recentIndex, this.recentIndex + ITEMS_LOAD_RANGE);
-            // each application lists only its own documents
-            const _app = SOS.currentApp();
-            const _files = utils.fn.parseRecent(_raw_block).filter(item => _app.accepts(item.format));
+            for (let item of _raw_block) {
+                const model = new FileModel(item);
+                model.exist = item.exist;
+                model.set('hash', item.fileid);
 
-            let _check_block = {};
-
-            for (let item of _files) {
-                var model = new FileModel(item);
-                model.set('hash', item.path.hashCode());
-
-                if (!!this.rawRecents) {
+                if (!!this.rawRecents)
                     collectionRecents.add(model);
-                    _check_block[model.get('hash')] = item.path;
-                } else return;
-            }
-
-            const _new_items_count = Object.keys(_check_block).length;
-            if (_new_items_count) {
-                if (this.appready) {
-                    sdk.execCommand('files:check', JSON.stringify(_check_block));
-                }
-
-                Object.assign(this.check_list, _check_block);
+                else return;
             }
 
             if (_raw_block.length === ITEMS_LOAD_RANGE) {
@@ -321,6 +345,11 @@
                 this.dndZone.hide();
                 this.view.$panel.find('#area-welcome').hide();
             }
+        };
+
+        // each application lists only its own documents; the suite lists all
+        const _on_service_recents = function () {
+            _on_recents.call(this, SOS.recents.list(SOS.currentApp().id).map(_item_from_entry));
         };
 
         var _on_recents = function (params) {
@@ -360,7 +389,7 @@
             $(`#${model.uid}-pin-btn`, view).click((e) => {
                 e.stopPropagation();
                 const pinned = !model.pinned;
-                model.setMany({ pinned: pinned, pinid: pinned ? -model.fileid : model.fileid });
+                model.setMany({ pinned: pinned, pinid: pinned ? -1 : 1 });
             })
 
             $(`#${model.uid}-more-btn`, view).click((e) => {
@@ -374,10 +403,12 @@
                 ppmenu.actionlist = actionList;
                 if (actionList === 'recovery') {
                     ppmenu.hideItem('files:explore', true);
+                    ppmenu.hideItem('files:locate', true);
                     ppmenu.hideItem('files:pin', true);
                     ppmenu.hideItem('files:unpin', true);
                 } else {
                     ppmenu.hideItem('files:explore', (!model.islocal && !model.dir) || !model.exist);
+                    ppmenu.hideItem('files:locate', model.exist);
                     ppmenu.hideItem(model.pinned ? 'files:pin' : 'files:unpin', true);
                     ppmenu.hideItem(model.pinned ? 'files:unpin' : 'files:pin', false);
                 }
@@ -455,6 +486,7 @@
                 }
 
                 $item[model.pinned ? 'addClass' : 'removeClass']('pinned');
+                $item.toggleClass('unavail', !model.exist);
 
                 addContextMenuEventListener(collection, model, this.view.$panel, 'recent');
 
@@ -473,6 +505,7 @@
             collectionRecents.events.contextmenu.attach(function (collection, model, e) {
                 ppmenu.actionlist = 'recent';
                 ppmenu.hideItem('files:explore', (!model.islocal && !model.dir) || !model.exist);
+                ppmenu.hideItem('files:locate', model.exist);
                 ppmenu.hideItem(model.pinned ? 'files:pin' : 'files:unpin', true);
                 ppmenu.hideItem(model.pinned ? 'files:unpin' : 'files:pin', false);
                 ppmenu.show({left: e.clientX, top: e.clientY}, model);
@@ -483,7 +516,7 @@
                 if ($el) {
                     $el[model.exist ? 'removeClass' : 'addClass']('unavail');
                     if (property['pinned'] !== undefined) {
-                        sdk.setRecentFilePinned(model.get('fileid'), property['pinned']);
+                        model.entry && SOS.recents.pin(model.entry, property['pinned']);
                         $el[model.pinned ? 'addClass' : 'removeClass']('pinned');
                     }
 
@@ -511,6 +544,7 @@
             collectionRecovers.events.contextmenu.attach((collection, model, e) => {
                 ppmenu.actionlist = 'recovery';
                 ppmenu.hideItem('files:explore', true);
+                ppmenu.hideItem('files:locate', true);
                 ppmenu.hideItem('files:pin', true);
                 ppmenu.hideItem('files:unpin', true);
                 ppmenu.show({left: e.clientX, top: e.clientY}, model);
@@ -533,6 +567,7 @@
                     {caption: utils.Lang.menuFilePin, action: 'files:pin', icon: '#pin20'},
                     {caption: utils.Lang.menuFileUnpin, action: 'files:unpin', icon: '#unpin20'},
                     {caption: utils.Lang.menuFileExplore, action: 'files:explore', icon: '#gofolder'},
+                    {caption: utils.Lang.sosRecentLocate, action: 'files:locate', icon: '#folder'},
                     {caption: utils.Lang.menuRemoveModel, action: 'files:forget', icon: '#remove'},
                     {caption: '--'},
                     {caption: utils.Lang.menuClear, action: 'files:clear', variant: 'negative'}
@@ -551,23 +586,19 @@
             } else if (/\:pin/.test(action)) {
                 const targetModel = collectionRecents.find('uid', data.uid);
                 if (targetModel) {
-                    targetModel.setMany({ pinned: true, pinid: -targetModel.fileid });
+                    targetModel.setMany({ pinned: true, pinid: -1 });
                 }
             } else if (/\:unpin/.test(action)) {
                 const targetModel = collectionRecents.find('uid', data.uid);
                 if (targetModel) {
-                    targetModel.setMany({ pinned: false, pinid: targetModel.fileid });
+                    targetModel.setMany({ pinned: false, pinid: 1 });
                 }
+            } else if (/\:locate/.test(action)) {
+                data.entry && SOS.recents.locate(data.entry);
             } else if (/\:clear/.test(action)) {
                 if (menu.actionlist === 'recent') {
-                    // an application clears only its own documents; the
-                    // shared history keeps the other applications' lists
-                    if ( SOS.currentApp().isSuite() )
-                        window.sdk.LocalFileRemoveAllRecents();
-                    else collectionRecents.items.slice().forEach(m => window.sdk.LocalFileRemoveRecent(parseInt(m.fileid)));
-                    if (collectionRecovers.size() === 0) {
-                        this.dndZone.show();
-                    }
+                    // an application clears only its own list
+                    _confirm_clear.call(this);
                 } else {
                     window.sdk.LocalFileRemoveAllRecovers();
                     if (collectionRecents.size() === 0) {
@@ -579,7 +610,8 @@
 
                 const count = collectionRecovers.size() + collectionRecents.size();
                 if (menu.actionlist === 'recent') {
-                    window.sdk.LocalFileRemoveRecent(parseInt(data.fileid));
+                    // forgets the entry; the document itself stays where it is
+                    data.entry && SOS.recents.remove(data.entry);
                 } else {
                     window.sdk.LocalFileRemoveRecover(parseInt(data.fileid));
                 }
@@ -589,14 +621,69 @@
                 }
             } else if (/\:explore/.test(action)) {
                 if (menu.actionlist == 'recent') {
-                    sdk.execCommand('files:explore', JSON.stringify({
-                        path: data.path,
-                        id: data.fileid,
-                        hash: data.hash
-                    }));
+                    data.entry && SOS.recents.explore(data.entry);
                 }
             }
         };
+
+        const _dialog = function (opts) {
+            const buttons = opts.buttons.map((b, i) =>
+                `<button type="button" class="btn ${i === 0 ? 'btn--landing' : ''}" data-index="${i}">${_escape(b.caption)}</button>`).join('');
+            const dlg = new Dialog({
+                dialogClass: 'dlg-sos-recent',
+                titleText: _escape(opts.title),
+                bodyTemplate: `<p class="sos-dlg__text">${_escape(opts.text)}</p>
+                    ${opts.check ? `<label class="sos-dlg__check"><input type="checkbox"> ${_escape(opts.check)}</label>` : ''}
+                    <div class="sos-dlg__buttons">${buttons}</div>`,
+                defaultWidth: 440,
+            });
+            dlg.show();
+
+            const $el = dlg.getElements().$el;
+            $el.find('.sos-dlg__buttons .btn').on('click', e => {
+                const b = opts.buttons[+e.currentTarget.getAttribute('data-index')];
+                const checked = $el.find('.sos-dlg__check input').is(':checked');
+                dlg.close();
+                b.handler && b.handler(checked);
+            });
+            $el.find('.sos-dlg__buttons .btn').first().focus();
+            return dlg;
+        };
+
+        function _confirm_clear() {
+            const app = SOS.currentApp();
+            const hasPinned = SOS.recents.list(app.id).some(e => e.pinned);
+            _dialog({
+                title: utils.Lang.sosRecentClearTitle,
+                text: utils.Lang.sosRecentClearText,
+                check: hasPinned ? utils.Lang.sosRecentClearPinned : '',
+                buttons: [
+                    {caption: utils.Lang.sosRecentClear, handler: pinned => {
+                        SOS.recents.clear(app.id, pinned);
+                        if (collectionRecovers.size() === 0) this.dndZone.show();
+                    }},
+                    {caption: utils.Lang.sosCancel},
+                ],
+            });
+        }
+
+        // opening found no file: find it or forget it
+        function _on_missing(info) {
+            const entry = SOS.recents.list('suite').find(e => SOS.recents.key(e.path) === SOS.recents.key(info.path)) ||
+                            {path: info.path, name: info.path.replace(/^.*[\\/]/, '')};
+            const text = info.status === 'unreachable' ? utils.Lang.sosRecentUnreachableText :
+                            info.status === 'noaccess' ? utils.Lang.sosRecentNoAccessText : utils.Lang.sosRecentMissingText;
+
+            _dialog({
+                title: utils.Lang.sosRecentCantOpen.replace('%1', entry.name),
+                text: text.replace('%1', entry.folder || ''),
+                buttons: [
+                    {caption: utils.Lang.sosRecentLocate, handler: () => SOS.recents.locate(entry)},
+                    {caption: utils.Lang.sosRecentRemove, handler: () => SOS.recents.remove(entry)},
+                    {caption: utils.Lang.sosCancel},
+                ],
+            });
+        }
 
         // note: search function
         function _on_filter_recents(e) {
@@ -633,7 +720,11 @@
                 _init_collections.call(this);
                 _init_ppmenu.call(this);
 
-                window.sdk.on('onupdaterecents', _on_recents.bind(this));
+                // lists come from the shell's recent-document service (sos/recents.js)
+                CommonEvents.on('sos:recents', _on_service_recents.bind(this));
+                CommonEvents.on('sos:app', _on_service_recents.bind(this));
+                CommonEvents.on('sos:recents:missing', _on_missing.bind(this));
+                SOS.recents.ready() && _on_service_recents.call(this);
                 window.sdk.on('onupdaterecovers', _on_recovers.bind(this));
                 window.sdk.on('on_native_message', (cmd, param) => {
                     if (/files:checked/.test(cmd)) {
@@ -650,12 +741,6 @@
                     } else if (/file\:skip/.test(cmd)) {
                         sdk.LocalFileRemoveRecent(parseInt(param));
                     } else if (/app\:ready/.test(cmd)) {
-                        if (Object.keys(this.check_list).length) {
-                            setTimeout(() => {
-                                sdk.execCommand('files:check', JSON.stringify(this.check_list));
-                            }, 100);
-                        }
-
                         this.appready = true;
                     }
                 });
