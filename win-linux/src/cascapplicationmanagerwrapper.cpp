@@ -28,6 +28,7 @@
 #include "ceditortools.h"
 #include "cfilechecker.h"
 #include "crecentdocuments.h"
+#include "ctemplatelibrary.h"
 #include "OfficeFileFormats.h"
 #include "cproviders.h"
 #ifndef __OS_WIN_XP
@@ -1331,6 +1332,10 @@ void CAscApplicationManagerWrapper::initializeApp()
     // recent documents: kept next to the engine's recents.xml in the user's profile
     CRecentDocuments & recents = CRecentDocuments::instance();
     recents.init(QString::fromStdWString(_app.m_oSettings.recover_path) + "/..");
+
+    // template library: the installed templates and the user's My Templates
+    CTemplateLibrary::setLibraryFolders(QString::fromStdWString(_app.m_oSettings.system_templates_path),
+                                        CTemplateLibrary::defaultUserFolder());
 
     QTimer * recents_timer = new QTimer(&_app);
     recents_timer->setSingleShot(true);

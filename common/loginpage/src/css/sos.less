@@ -417,6 +417,207 @@ body,
   }
 }
 
+// Search and My Templates folder (New page)
+.sos-gallery__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: @sos-space-3;
+  margin-bottom: @sos-space-4;
+}
+
+.sos-search {
+  flex: 0 1 320px;
+  min-width: 180px;
+  height: 30px;
+  padding: 0 @sos-space-3;
+  border: 1px solid @border-regular-control;
+  border-radius: @sos-radius-small;
+  background-color: @background-normal;
+  color: @text-normal;
+  font: @sos-font-size-body @sos-font-family;
+  outline: 0 none;
+
+  &:focus {
+    border-color: var(--sos-app-accent);
+    box-shadow: 0 0 0 1px var(--sos-app-accent);
+  }
+}
+
+.sos-gallery__empty,
+.sos-gallery__notice {
+  margin: @sos-space-4 0 0;
+  font: @sos-font-size-body @sos-font-family;
+  color: @text-secondary;
+}
+
+.sos-gallery__notice {
+  padding: @sos-space-2 @sos-space-3;
+  border-left: 3px solid var(--sos-app-accent);
+  background-color: @highlight-button-hover;
+
+  .rtl & {
+    border-left: 0 none;
+    border-right: 3px solid var(--sos-app-accent);
+  }
+}
+
+// Template preview dialog
+.dlg.sos-dlg-preview {
+  overflow: hidden;
+  max-width: calc(100vw - 32px);
+
+  .title {
+    height: 40px;
+    padding: 8px 12px;
+  }
+
+  .body {
+    padding: 0 @sos-space-4 @sos-space-5;
+  }
+}
+
+.sos-preview {
+  display: flex;
+  align-items: center;
+  gap: @sos-space-3;
+  font-family: @sos-font-family;
+  color: @text-normal;
+  text-align: left;
+
+  .rtl & {
+    text-align: right;
+  }
+
+  &__thumb {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 304px;
+    height: 264px;
+    border: 1px solid @border-regular-control;
+    border-radius: @sos-radius-small;
+    background-color: #fff;
+    box-shadow: @sos-shadow-card;
+    overflow: hidden;
+
+    &--missing::after {
+      content: '';
+      width: 40%;
+      height: 60%;
+      border: 2px dashed @border-regular-control;
+      border-radius: @sos-radius-small;
+    }
+  }
+
+  &__img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  &__icon {
+    width: 96px;
+    height: 128px;
+  }
+
+  &__info {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-self: stretch;
+    padding: 0 @sos-space-2;
+  }
+
+  &__name {
+    margin: 0 0 @sos-space-2;
+    font: @sos-font-weight-semibold @sos-font-size-title/1.25 @sos-font-family;
+  }
+
+  &__descr {
+    margin: 0 0 @sos-space-4;
+    font-size: @sos-font-size-subtitle;
+    color: @text-secondary;
+  }
+
+  &__meta {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: @sos-space-1 @sos-space-3;
+    margin: 0 0 @sos-space-4;
+    font-size: @sos-font-size-body;
+
+    dt { color: @text-secondary; }
+    dd { margin: 0; text-transform: capitalize; }
+  }
+
+  &__hint {
+    margin: 0 0 @sos-space-4;
+    font-size: @sos-font-size-caption;
+    color: @text-secondary;
+  }
+
+  &__actions {
+    display: flex;
+    gap: @sos-space-2;
+    margin-top: auto;
+
+    .btn {
+      min-width: 96px;
+      height: 32px;
+      border-radius: @sos-radius-small;
+    }
+
+    .sos-preview__cancel {
+      border: 1px solid @border-regular-control;
+      background-color: transparent;
+      color: @text-normal;
+
+      &:hover { background-color: @highlight-button-hover; }
+    }
+
+    .sos-preview__create {
+      border-color: var(--sos-app-accent);
+      background-color: var(--sos-app-accent);
+      color: var(--sos-app-on-accent);
+    }
+  }
+
+  &__count {
+    margin-top: @sos-space-2;
+    min-height: 1em;
+    font-size: @sos-font-size-caption;
+    color: @text-secondary;
+  }
+
+  &__nav {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 48px;
+    border: 0 none;
+    border-radius: @sos-radius-small;
+    background: transparent;
+    color: @text-secondary;
+    font: 28px/1 @sos-font-family;
+    cursor: pointer;
+
+    &:hover { background-color: @highlight-button-hover; color: @text-normal; }
+    &[hidden] { visibility: hidden; display: block; }
+  }
+}
+
+@media (max-width: 720px) {
+  .sos-preview {
+    flex-wrap: wrap;
+    justify-content: center;
+
+    &__thumb { width: 228px; height: 198px; }
+    &__info { flex-basis: 100%; }
+  }
+}
+
 // --------------------------------------------------------------------------
 // Backstage pages (New)
 // --------------------------------------------------------------------------

@@ -35,6 +35,7 @@ from docx.shared import Cm, Pt, RGBColor
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.worksheet.properties import PageSetupProperties
 
 from pptx import Presentation
@@ -378,6 +379,104 @@ def memo(path):
     doc.save(path)
 
 
+def cover_letter(path):
+    doc = writer_base(2.5)
+    para(doc, '[Your Name]', bold=True, size=22, color=WRITER, after=0)
+    p = para(doc, '[Street Address], [City, Postcode]  ·  [Phone]  ·  [Email]', size=9.5, color=MUTED, after=2)
+    rule(p, WRITER, 12)
+    para(doc, '', after=14)
+    para(doc, '[Date]', after=14)
+    for line in ('[Hiring Manager Name]', '[Company Name]', '[Street Address]', '[City, Postcode]'):
+        para(doc, line, after=0)
+    para(doc, '', after=12)
+    para(doc, 'Application for the position of [Job Title], reference [Reference]', bold=True, after=12)
+    para(doc, 'Dear [Hiring Manager Name],', after=10)
+    para(doc, 'I am writing to apply for the position of [Job Title] advertised on [where you saw it]. '
+              'With [number] years of experience in [field], I am confident that I can contribute to '
+              '[Company Name] from my first day.')
+    para(doc, 'In my current role at [Current Employer], I [main achievement with a measurable result]. '
+              'I have also [second achievement or responsibility that matches the job description].')
+    para(doc, 'What attracts me to [Company Name] is [a specific reason: product, values, project]. '
+              'I would welcome the opportunity to discuss how my skills in [skill], [skill] and [skill] '
+              'can support your team.')
+    para(doc, 'Thank you for considering my application. I look forward to hearing from you.')
+    para(doc, '', after=6)
+    para(doc, 'Yours sincerely,', after=36)
+    para(doc, '[Your Name]', bold=True, after=0)
+    para(doc, 'Enclosure: Resume', color=MUTED, size=9.5, after=0)
+    doc.save(path)
+
+
+def project_proposal(path):
+    doc = writer_base(2.2)
+    footer_page_numbers(doc, '[Project name] proposal')
+    para(doc, 'PROJECT PROPOSAL', bold=True, size=10, color=MUTED, after=2)
+    doc.add_paragraph('[Project Name]', style='Title')
+    doc.add_paragraph('[One sentence that says what the project will achieve]', style='Subtitle')
+    t = table(doc, [['Submitted by', '[Name, Department]'],
+                    ['Submitted to', '[Sponsor or committee]'],
+                    ['Date', '[Date]'],
+                    ['Requested budget', '[Amount]']], header=False, widths=[4, 12.6], zebra=None)
+    for r in t.rows:
+        r.cells[0].paragraphs[0].runs[0].bold = True
+        shade(r.cells[0], 'EAF0F8')
+    doc.add_paragraph('1. Background', style='Heading 1')
+    para(doc, 'Describe the situation today and the problem or opportunity the project addresses. '
+              'Give the facts and figures that show why it matters.')
+    doc.add_paragraph('2. Objectives', style='Heading 1')
+    bullets(doc, ['[Specific, measurable objective]', '[Specific, measurable objective]',
+                  '[Specific, measurable objective]'], 'List Number')
+    doc.add_paragraph('3. Scope and deliverables', style='Heading 1')
+    table(doc, [['Deliverable', 'Description', 'Due'],
+                ['[Deliverable 1]', '[What will be delivered]', '[Date]'],
+                ['[Deliverable 2]', '[What will be delivered]', '[Date]'],
+                ['[Deliverable 3]', '[What will be delivered]', '[Date]']], widths=[4.5, 9, 3.1])
+    para(doc, 'Out of scope: [what the project will not do].', italic=True, color=MUTED, before=6)
+    doc.add_paragraph('4. Approach and timeline', style='Heading 1')
+    table(doc, [['Phase', 'Activities', 'Start', 'End'],
+                ['Initiation', '[Activities]', '[Date]', '[Date]'],
+                ['Planning', '[Activities]', '[Date]', '[Date]'],
+                ['Delivery', '[Activities]', '[Date]', '[Date]'],
+                ['Closure', '[Activities]', '[Date]', '[Date]']], widths=[3.4, 8.2, 2.5, 2.5])
+    doc.add_paragraph('5. Budget', style='Heading 1')
+    table(doc, [['Item', 'Cost'], ['Staff', '[Amount]'], ['Equipment and software', '[Amount]'],
+                ['External services', '[Amount]'], ['Contingency (10%)', '[Amount]'], ['Total', '[Amount]']],
+          widths=[11.6, 5])
+    doc.add_paragraph('6. Risks', style='Heading 1')
+    bullets(doc, ['[Risk] – [how it will be reduced]', '[Risk] – [how it will be reduced]'])
+    doc.add_paragraph('7. Approval', style='Heading 1')
+    table(doc, [['Name', 'Role', 'Signature', 'Date'], ['', '', '', ''], ['', '', '', '']],
+          widths=[4.6, 4, 5, 3])
+    doc.save(path)
+
+
+def agenda(path):
+    doc = writer_base(2.2)
+    para(doc, 'MEETING AGENDA', bold=True, size=10, color=MUTED, after=2)
+    doc.add_paragraph('[Meeting title]', style='Title')
+    t = table(doc, [['Date', '[Date]', 'Time', '[Start – End]'],
+                    ['Location', '[Room or call link]', 'Chair', '[Name]']], header=False,
+              widths=[3, 5.5, 3, 5.1], zebra=None)
+    for r in t.rows:
+        for j in (0, 2):
+            r.cells[j].paragraphs[0].runs[0].bold = True
+            shade(r.cells[j], 'EAF0F8')
+    doc.add_paragraph('Purpose', style='Heading 2')
+    para(doc, '[What the meeting must decide or produce.]')
+    doc.add_paragraph('Invited', style='Heading 2')
+    para(doc, '[Name], [Name], [Name]')
+    doc.add_paragraph('Agenda', style='Heading 1')
+    table(doc, [['Time', 'Item', 'Lead', 'Outcome'],
+                ['[09:00]', 'Welcome and review of previous actions', '[Name]', 'Information'],
+                ['[09:10]', '[Topic 1]', '[Name]', 'Decision'],
+                ['[09:30]', '[Topic 2]', '[Name]', 'Discussion'],
+                ['[09:50]', '[Topic 3]', '[Name]', 'Information'],
+                ['[10:05]', 'Actions and next meeting', '[Name]', 'Agreement']], widths=[2.2, 8, 3, 3.4])
+    doc.add_paragraph('Preparation', style='Heading 2')
+    bullets(doc, ['[Document to read before the meeting]', '[Data to bring]'])
+    doc.save(path)
+
+
 # ---------------------------------------------------------------------------
 # Sheet
 # ---------------------------------------------------------------------------
@@ -696,6 +795,176 @@ def financial_report(path):
     wb.save(path)
 
 
+def expense_report(path):
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'Expense report'
+    xl_title(ws, 'Expense Report', 'Fill in the white cells. Totals update automatically.')
+    for col, w in zip('ABCDEFG', (13, 34, 18, 14, 12, 14, 2)):
+        ws.column_dimensions[col].width = w
+    info = (('Employee', '[Name]'), ('Department', '[Department]'), ('Manager', '[Name]'),
+            ('Period', '[From – To]'), ('Purpose', '[Business purpose]'))
+    for i, (k, v) in enumerate(info, 4):
+        ws.cell(row=i, column=1, value=k).font = Font(name=FONT, bold=True, color=MUTED)
+        c = ws.cell(row=i, column=2, value=v)
+        c.border = Border(bottom=THIN)
+    xl_header(ws, 10, 1, ['Date', 'Description', 'Category', 'Amount', 'VAT %', 'Total'])
+    rows = [('Taxi to client site', 'Travel', 38.50, 0.1), ('Hotel, 1 night', 'Lodging', 129, 0.1),
+            ('Client lunch', 'Meals', 64.20, 0.1), ('Printer paper', 'Office supplies', 18.90, 0.2)]
+    first = 11
+    for i in range(12):
+        r = first + i
+        bg = 'F3F8F5' if i % 2 else None
+        if i < len(rows):
+            d, cat, amt, vat = rows[i]
+            xl_cell(ws, r, 1, datetime.date(datetime.date.today().year + 1, 1, 8 + i), 'yyyy-mm-dd', bg=bg)
+            xl_cell(ws, r, 2, d, bg=bg)
+            xl_cell(ws, r, 3, cat, bg=bg)
+            xl_cell(ws, r, 4, amt, MONEY, bg=bg)
+            xl_cell(ws, r, 5, vat, '0%', bg=bg, align='center')
+        else:
+            xl_cell(ws, r, 1, None, 'yyyy-mm-dd', bg=bg)
+            for c in (2, 3):
+                xl_cell(ws, r, c, None, bg=bg)
+            xl_cell(ws, r, 4, None, MONEY, bg=bg)
+            xl_cell(ws, r, 5, None, '0%', bg=bg, align='center')
+        xl_cell(ws, r, 6, '=IF(D%d="","",D%d*(1+E%d))' % (r, r, r), MONEY, bg=bg or 'F7F7F7')
+    last = first + 11
+    r = last + 2
+    for k, f in (('Subtotal', '=SUM(D%d:D%d)' % (first, last)),
+                 ('VAT', '=SUM(F%d:F%d)-E%d' % (first, last, r)),
+                 ('Total claimed', '=E%d+E%d' % (r, r + 1)),
+                 ('Advance received', 0),
+                 ('Amount due to employee', '=E%d-E%d' % (r + 2, r + 3))):
+        ws.cell(row=r, column=4, value=k).font = Font(name=FONT, bold=True,
+                                                       color=SHEET if k.startswith('Amount') else INK)
+        ws.cell(row=r, column=4).alignment = Alignment(horizontal='right')
+        c = ws.cell(row=r, column=5, value=f)
+        c.number_format = MONEY
+        c.font = Font(name=FONT, bold=k.startswith(('Total', 'Amount')))
+        c.border = Border(bottom=THIN)
+        ws.merge_cells(start_row=r, start_column=5, end_row=r, end_column=6)
+        if k.startswith('Amount'):
+            c.fill = fill('E2EFE8')
+        r += 1
+    r += 1
+    for k in ('Employee signature', 'Approved by'):
+        ws.cell(row=r, column=1, value=k).font = Font(name=FONT, size=10, color=MUTED)
+        for col in range(2, 4):
+            ws.cell(row=r, column=col).border = Border(bottom=THIN)
+        r += 2
+    ws.freeze_panes = 'A11'
+    ws.page_setup.fitToWidth = 1
+    ws.page_setup.fitToHeight = 1
+    ws.sheet_properties.pageSetUpPr = PageSetupProperties(fitToPage=True)
+    wb.save(path)
+
+
+def timesheet(path):
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'Timesheet'
+    xl_title(ws, 'Weekly Timesheet', 'Enter start, end and break for each day; hours are calculated.')
+    for col, w in zip('ABCDEFGH', (14, 13, 12, 12, 12, 12, 30, 2)):
+        ws.column_dimensions[col].width = w
+    for i, (k, v) in enumerate((('Employee', '[Name]'), ('Week starting', None), ('Hourly rate', 25)), 4):
+        ws.cell(row=i, column=1, value=k).font = Font(name=FONT, bold=True, color=MUTED)
+        c = ws.cell(row=i, column=2, value=v)
+        c.border = Border(bottom=THIN)
+        if k == 'Week starting':
+            # next Monday after 1 January of next year
+            y = datetime.date.today().year + 1
+            d = datetime.date(y, 1, 1)
+            c.value = d + datetime.timedelta(days=(7 - d.weekday()) % 7)
+            c.number_format = 'yyyy-mm-dd'
+        if k == 'Hourly rate':
+            c.number_format = MONEY
+    xl_header(ws, 8, 1, ['Day', 'Date', 'Start', 'End', 'Break (h)', 'Hours', 'Notes'])
+    days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    for i, d in enumerate(days):
+        r = 9 + i
+        bg = 'F3F8F5' if i % 2 else None
+        xl_cell(ws, r, 1, d, bold=True, bg=bg)
+        xl_cell(ws, r, 2, '=$B$5+%d' % i, 'ddd dd mmm', bg=bg or 'F7F7F7')
+        work = i < 5
+        xl_cell(ws, r, 3, datetime.time(9, 0) if work else None, 'hh:mm', bg=bg, align='center')
+        xl_cell(ws, r, 4, datetime.time(17, 30) if work else None, 'hh:mm', bg=bg, align='center')
+        xl_cell(ws, r, 5, 0.5 if work else None, '0.00', bg=bg, align='center')
+        xl_cell(ws, r, 6, '=IF(OR(C%d="",D%d=""),0,MAX(0,(D%d-C%d)*24-E%d))' % (r, r, r, r, r), '0.00',
+                True, bg or 'F7F7F7')
+        xl_cell(ws, r, 7, None, bg=bg)
+    r = 17
+    for k, f, fmt in (('Total hours', '=SUM(F9:F15)', '0.00'),
+                      ('Regular (up to 40 h)', '=MIN(40,F17)', '0.00'),
+                      ('Overtime', '=MAX(0,F17-40)', '0.00'),
+                      ('Gross pay (overtime at 1.5x)', '=F18*B6+F19*B6*1.5', MONEY)):
+        c = ws.cell(row=r, column=5, value=k)
+        c.font = Font(name=FONT, bold=True, color=SHEET if k.startswith('Gross') else INK)
+        c.alignment = Alignment(horizontal='right')
+        v = ws.cell(row=r, column=6, value=f)
+        v.number_format = fmt
+        v.font = Font(name=FONT, bold=True)
+        v.border = Border(bottom=THIN)
+        if k.startswith('Gross'):
+            v.fill = fill('E2EFE8')
+        r += 1
+    ws.freeze_panes = 'A9'
+    ws.page_setup.orientation = 'landscape'
+    ws.page_setup.fitToWidth = 1
+    ws.page_setup.fitToHeight = 1
+    ws.sheet_properties.pageSetUpPr = PageSetupProperties(fitToPage=True)
+    wb.save(path)
+
+
+def project_tracker(path):
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'Tasks'
+    xl_title(ws, 'Project Tracker', '[Project name]  ·  Status: Not started, In progress, Done, Blocked')
+    for col, w in zip('ABCDEFGHI', (6, 36, 16, 13, 13, 14, 12, 30, 2)):
+        ws.column_dimensions[col].width = w
+    xl_header(ws, 4, 1, ['#', 'Task', 'Owner', 'Start', 'Due', 'Status', '% done', 'Notes'])
+    y = datetime.date.today().year + 1
+    tasks = [('Kick-off meeting', 'Done', 1.0), ('Gather requirements', 'Done', 1.0),
+             ('Design', 'In progress', 0.6), ('Build', 'Not started', 0), ('Test', 'Not started', 0),
+             ('Launch', 'Not started', 0)]
+    dv = DataValidation(type='list', formula1='"Not started,In progress,Done,Blocked"', allow_blank=True)
+    ws.add_data_validation(dv)
+    for i in range(15):
+        r = 5 + i
+        bg = 'F3F8F5' if i % 2 else None
+        xl_cell(ws, r, 1, i + 1, align='center', bg=bg)
+        if i < len(tasks):
+            name, st, pct = tasks[i]
+            start = datetime.date(y, 1, 5) + datetime.timedelta(days=14 * i)
+            xl_cell(ws, r, 2, name, bg=bg)
+            xl_cell(ws, r, 3, '[Owner]', bg=bg)
+            xl_cell(ws, r, 4, start, 'yyyy-mm-dd', bg=bg)
+            xl_cell(ws, r, 5, start + datetime.timedelta(days=12), 'yyyy-mm-dd', bg=bg)
+            xl_cell(ws, r, 6, st, bg=bg, align='center')
+            xl_cell(ws, r, 7, pct, '0%', bg=bg, align='center')
+        else:
+            for c, fmt in ((2, None), (3, None), (4, 'yyyy-mm-dd'), (5, 'yyyy-mm-dd'), (6, None), (7, '0%')):
+                xl_cell(ws, r, c, None, fmt, bg=bg)
+        xl_cell(ws, r, 8, None, bg=bg)
+        dv.add('F%d' % r)
+    ws['B21'] = 'Summary'
+    ws['B21'].font = Font(name=FONT, size=13, bold=True, color=SHEET)
+    for i, (k, f, fmt) in enumerate((('Tasks', '=COUNTA(B5:B19)', '0'),
+                                     ('Done', '=COUNTIF(F5:F19,"Done")', '0'),
+                                     ('In progress', '=COUNTIF(F5:F19,"In progress")', '0'),
+                                     ('Blocked', '=COUNTIF(F5:F19,"Blocked")', '0'),
+                                     ('Overall progress', '=IF(COUNTA(B5:B19)=0,0,SUM(G5:G19)/COUNTA(B5:B19))', '0%'))):
+        xl_cell(ws, 22 + i, 2, k, bold=k.startswith('Overall'))
+        xl_cell(ws, 22 + i, 3, f, fmt, bold=k.startswith('Overall'), bg='E2EFE8' if k.startswith('Overall') else 'F7F7F7')
+    ws.freeze_panes = 'A5'
+    ws.page_setup.orientation = 'landscape'
+    ws.page_setup.fitToWidth = 1
+    ws.page_setup.fitToHeight = 0
+    ws.sheet_properties.pageSetUpPr = PageSetupProperties(fitToPage=True)
+    wb.save(path)
+
+
 # ---------------------------------------------------------------------------
 # Presentation
 # ---------------------------------------------------------------------------
@@ -956,6 +1225,44 @@ def education_presentation(path):
     d.save(path)
 
 
+def status_report_presentation(path):
+    d = Deck('2D5AA6', '1F2A44')
+    d.title_slide('Status Report\n[Project or Team]', 'Reporting period: [From – To]', 'Status report')
+    d.columns('Summary', [('Overall', '[On track / At risk / Off track] – [one-line reason]'),
+                          ('Done this period', '[Main achievements]'),
+                          ('Next period', '[Main planned work]')])
+    d.table('Milestones', [['Milestone', 'Planned', 'Forecast', 'Status'],
+                           ['[Milestone 1]', '[Date]', '[Date]', 'Done'],
+                           ['[Milestone 2]', '[Date]', '[Date]', 'On track'],
+                           ['[Milestone 3]', '[Date]', '[Date]', 'At risk']], [4.6, 2.4, 2.4, 2.4])
+    d.table('Budget', [['Item', 'Budget', 'Spent', 'Remaining'], ['[Item]', '[Value]', '[Value]', '[Value]'],
+                       ['[Item]', '[Value]', '[Value]', '[Value]'], ['Total', '[Value]', '[Value]', '[Value]']],
+            [4.6, 2.4, 2.4, 2.4])
+    d.table('Issues and risks', [['Issue or risk', 'Impact', 'Owner', 'Action'],
+                                 ['[Issue]', 'High', '[Name]', '[Action and date]'],
+                                 ['[Risk]', 'Medium', '[Name]', '[Action and date]']], [4.0, 1.8, 2.2, 3.8])
+    d.content('Decisions needed', ['[Decision 1, by when]', '[Decision 2, by when]'])
+    d.closing('Thank you', '[Name]  ·  [Email]')
+    d.save(path)
+
+
+def training_presentation(path):
+    d = Deck('7A4FA3', '2E2140')
+    d.title_slide('[Workshop Title]', '[Trainer name]  ·  [Date]  ·  [Duration]', 'Training workshop')
+    d.content('Welcome', ['Introductions: name, role, what you expect from today', 'Practical information',
+                          '  Breaks, materials, how to ask questions'])
+    d.content('Today\'s goals', ['After this workshop you will be able to:', '  [Skill 1]', '  [Skill 2]', '  [Skill 3]'])
+    d.table('Programme', [['Time', 'Session', 'Format'], ['[09:00]', '[Topic]', 'Presentation'],
+                          ['[10:00]', '[Topic]', 'Hands-on exercise'], ['[11:15]', '[Topic]', 'Group work'],
+                          ['[12:00]', 'Wrap-up and feedback', 'Discussion']], [2.4, 6.0, 3.4])
+    d.columns('Module 1: [Topic]', [('Why it matters', '[Context]'), ('How it works', '[Explanation]'),
+                                    ('Try it', '[Short exercise]')])
+    d.content('Exercise', ['[Instructions, step by step]', '[Time available]', '[What to share at the end]'])
+    d.content('Key takeaways', ['[Takeaway 1]', '[Takeaway 2]', '[Takeaway 3]', 'Resources: [where to find more]'])
+    d.closing('Thank you', 'Please share your feedback: [how]')
+    d.save(path)
+
+
 # ---------------------------------------------------------------------------
 # Templates, thumbnails
 # ---------------------------------------------------------------------------
@@ -1052,13 +1359,21 @@ BUILDERS = [
     ('writer', 'report.dotx', report, 'page'),
     ('writer', 'meeting-notes.dotx', meeting_notes, 'page'),
     ('writer', 'memo.dotx', memo, 'page'),
+    ('writer', 'cover-letter.dotx', cover_letter, 'page'),
+    ('writer', 'project-proposal.dotx', project_proposal, 'page'),
+    ('writer', 'agenda.dotx', agenda, 'page'),
     ('sheet', 'budget.xltx', budget, 'sheet'),
     ('sheet', 'calendar.xltx', calendar, 'sheet'),
     ('sheet', 'invoice.xltx', invoice, 'sheet'),
     ('sheet', 'financial-report.xltx', financial_report, 'sheet'),
+    ('sheet', 'expense-report.xltx', expense_report, 'sheet'),
+    ('sheet', 'timesheet.xltx', timesheet, 'sheet'),
+    ('sheet', 'project-tracker.xltx', project_tracker, 'sheet'),
     ('presentation', 'business.potx', business_presentation, 'slide'),
     ('presentation', 'project.potx', project_presentation, 'slide'),
     ('presentation', 'education.potx', education_presentation, 'slide'),
+    ('presentation', 'status-report.potx', status_report_presentation, 'slide'),
+    ('presentation', 'training.potx', training_presentation, 'slide'),
 ]
 
 # Templates that already ship with the suite (common/templates/EN) and get a

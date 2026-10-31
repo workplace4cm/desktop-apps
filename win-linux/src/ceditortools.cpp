@@ -361,12 +361,12 @@ namespace CEditorTools
 
         QString _filter;
         if ( editor.compare(L"cell") == 0 ) {
-            _filter = CFileDialogWrapper::tr("Spreadsheet template") + " (*.xltx *.xltm *.ots)";
+            _filter = CFileDialogWrapper::tr("Spreadsheet template") + " (*.xltx *.ots *.xlt)";
         } else
         if ( editor.compare(L"slide") == 0 ) {
-            _filter = CFileDialogWrapper::tr("Presentation template") + " (*.potx *.otp)";
+            _filter = CFileDialogWrapper::tr("Presentation template") + " (*.potx *.otp *.pot)";
         } else {
-            _filter = CFileDialogWrapper::tr("Document template") + " (*.dotx *.ott)";
+            _filter = CFileDialogWrapper::tr("Document template") + " (*.dotx *.ott *.dot)";
         }
 
         CFileDialogWrapper dlg(parent);

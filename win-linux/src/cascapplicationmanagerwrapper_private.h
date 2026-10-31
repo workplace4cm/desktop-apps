@@ -39,6 +39,9 @@
 #include "clogger.h"
 #include "common/File.h"
 #include "crecentdocuments.h"
+#include "ctemplatelibrary.h"
+#include <QDesktopServices>
+#include <QUrl>
 #include <QApplication>
 #include <QJsonParseError>
 #ifdef _WIN32
@@ -245,6 +248,10 @@ public:
                 handleRecentsCommand(cmd.substr(12), data.get_Param(), event.m_nSenderId);
                 return true;
             } else
+            if ( cmd.rfind(L"sos:templates:", 0) == 0 ) {
+                handleTemplatesCommand(cmd.substr(14), data.get_Param(), event.m_nSenderId);
+                return true;
+            } else
             if ( cmd.compare(L"open:recent") == 0 ) {
                 QJsonObject objRoot = Utils::parseJsonString(data.get_Param());
                 if ( !objRoot.isEmpty() ) {
@@ -351,44 +358,21 @@ public:
                 const std::wstring search_tpl = L"template:";
 
                 if ( format.rfind(search_tpl, 0) == 0 ) {
+                    // a template picked on this computer
                     std::wstring type = format.substr(search_tpl.length());
-                    std::wstring file_path = CEditorTools::getlocaltemplate(type, event.m_nSenderId).toStdWString();
-
-                    if ( !file_path.empty() ) {
-                        COpenOptions opts{file_path, etTemplateFile};
-                        opts.name = m_appmanager.newFileName(type);
-                        opts.parent_id = event.m_nSenderId;
-
-                        int view_id = -1;
-                        if ( openDocument(opts, &view_id) && view_id > -1 )
-                            CRecentDocuments::instance().expectTemplate(view_id, QString::fromStdWString(file_path));
-                    }
+                    const QString _path = CEditorTools::getlocaltemplate(type, event.m_nSenderId);
+                    if ( !_path.isEmpty() )
+                        createFromTemplate(_path, QString(), 0, event.m_nSenderId);
                 } else if ( format.rfind(L"{\"template", 0) == 0 ) {
-                    QJsonParseError jerror;
-                    QJsonDocument jdoc = QJsonDocument::fromJson(QString::fromStdWString(format).toUtf8(), &jerror);
-
-                    if( jerror.error == QJsonParseError::NoError ) {
-                        QJsonObject obj = jdoc.object().value("template").toObject();
-                        int _f = obj.value("type").toInt();
-                        const QString _path = obj.value("path").toString();
-
-                        // a gallery template that was removed or can't be read
-                        QFileInfo _info(_path);
-                        if ( !_info.isFile() || !_info.isReadable() ) {
-                            CMessage::error(m_appmanager.mainWindow() ? m_appmanager.mainWindow()->handle() : nullptr,
-                                            QObject::tr("The template %1 is missing or cannot be read.").arg(_info.fileName().toHtmlEscaped()));
-                            return true;
-                        }
-
-                        COpenOptions opts{m_appmanager.newFileName(_f), etTemplateFile, _path};
-                        opts.format = _f;
-                        opts.parent_id = event.m_nSenderId;
-
-                        // listed in the recent documents when it is first saved
-                        int view_id = -1;
-                        if ( openDocument(opts, &view_id) && view_id > -1 )
-                            CRecentDocuments::instance().expectTemplate(view_id, _path);
+                    // a template of the gallery: only files of the template library
+                    const QJsonObject obj = Utils::parseJsonString(format).value("template").toObject();
+                    const QString _path = obj.value("path").toString();
+                    if ( !CTemplateLibrary::isLibraryPath(_path) ) {
+                        // pages can't open arbitrary files this way
+                        return true;
                     }
+                    createFromTemplate(_path, obj.value("app").toString(), obj.value("type").toInt(), event.m_nSenderId,
+                                       obj.value("id").toString());
                 } else {
                     int _f = format == L"word" ? AVS_OFFICESTUDIO_FILE_DOCUMENT_DOCX :
                                  format == L"cell" ? AVS_OFFICESTUDIO_FILE_SPREADSHEET_XLSX :
@@ -409,6 +393,66 @@ public:
         }
         }
         return false;
+    }
+
+    // New untitled document from a template. The template is checked first
+    // (missing, damaged, wrong application, macros); the engine then converts
+    // a copy of it, so saving the new document never writes to the template.
+    auto createFromTemplate(const QString& path, const QString& app, int format, int sender,
+                            const QString& id = QString()) -> bool
+    {
+        const CTemplateLibrary::Status st = CTemplateLibrary::validate(path, app);
+        if ( st != CTemplateLibrary::Status::Ok ) {
+            const QString name = QFileInfo(path).fileName();
+            if ( !id.isEmpty() ) {
+                // the page hides the card and says why
+                const QJsonObject reply{{"id", id}, {"path", path}, {"status", CTemplateLibrary::statusName(st)}};
+                m_appmanager.sendCommandTo(m_appmanager.GetViewById(sender), L"sos:templates:failed",
+                                           Utils::stringifyJson(reply).toStdWString());
+            }
+            CMessage::error(m_appmanager.mainWindow() ? m_appmanager.mainWindow()->handle() : nullptr,
+                            CTemplateLibrary::statusMessage(st, name));
+            return false;
+        }
+
+        // the new document's kind comes from the checked file, not from the page
+        const QString _app = CTemplateLibrary::appForTemplate(path);
+        format = _app == "sheet" ? AVS_OFFICESTUDIO_FILE_SPREADSHEET_XLTX :
+                 _app == "presentation" ? AVS_OFFICESTUDIO_FILE_PRESENTATION_POTX :
+                 _app == "pdf" ? AVS_OFFICESTUDIO_FILE_DOCUMENT_OFORM_PDF : AVS_OFFICESTUDIO_FILE_DOCUMENT_DOTX;
+
+        COpenOptions opts{m_appmanager.newFileName(format), etTemplateFile, path};
+        opts.format = format;
+        opts.parent_id = sender;
+
+        // listed in the recent documents when it is first saved
+        int view_id = -1;
+        if ( openDocument(opts, &view_id) && view_id > -1 ) {
+            CRecentDocuments::instance().expectTemplate(view_id, path);
+            return true;
+        }
+        return false;
+    }
+
+    // Secure Office Suite template library: commands from start pages
+    auto handleTemplatesCommand(const std::wstring& op, const std::wstring& param, int sender) -> void
+    {
+        const QJsonObject args = Utils::parseJsonString(param);
+        CCefView * view = m_appmanager.GetViewById(sender);
+
+        if ( op == L"check" ) {
+            // statuses of the installed templates and the user's own templates
+            const QJsonObject reply{
+                {"status", CTemplateLibrary::check(args["items"].toArray())},
+                {"user", CTemplateLibrary::scanUserFolder()},
+                {"userFolder", QDir::toNativeSeparators(CTemplateLibrary::userFolder())},
+            };
+            m_appmanager.sendCommandTo(view, L"sos:templates:status", Utils::stringifyJson(reply).toStdWString());
+        } else
+        if ( op == L"folder" ) {
+            if ( CTemplateLibrary::ensureUserFolder() )
+                QDesktopServices::openUrl(QUrl::fromLocalFile(CTemplateLibrary::userFolder()));
+        }
     }
 
     // Secure Office Suite recent documents: commands from start pages and editors
