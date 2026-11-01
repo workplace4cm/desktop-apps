@@ -248,7 +248,7 @@ if (Test-Path $xml) {
     [xml]$doc = Get-Content $xml
     foreach ($ext in $Exts) {
         $a = $doc.DefaultAssociations.Association | Where-Object Identifier -eq $ext
-        if ($a -and $a.ApplicationName -eq $Apps[(Owner $ext)]) { Pass "$xml gives $ext to $($a.ApplicationName) ($($a.ProgId))" } else { Fail "$xml: $ext -> '$($a.ApplicationName)'" }
+        if ($a -and $a.ApplicationName -eq $Apps[(Owner $ext)]) { Pass "$xml gives $ext to $($a.ApplicationName) ($($a.ProgId))" } else { Fail "${xml}: $ext -> '$($a.ApplicationName)'" }
     }
 }
 
