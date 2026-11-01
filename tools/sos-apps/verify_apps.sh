@@ -70,7 +70,7 @@ cp "$EMPTY/new.docx" "$DOCS/Second.docx"
 ls -l "$DOCS"
 
 # -- 1. a document opens directly in its application
-"$PREFIX-presentation" "$DOCS/Deck.pptx" >"$OUT/presentation.log" 2>&1 &
+( "$PREFIX-presentation" "$DOCS/Deck.pptx"; echo "exited with status $?" ) >"$OUT/presentation.log" 2>&1 &
 if pid=$(wait_window '^\*?Deck\.pptx.* - EuroOffice Presentation$'); then
     ok "Deck.pptx opened directly in EuroOffice Presentation (pid $pid)"
 else
@@ -82,7 +82,7 @@ shot 1-presentation-document
 declare -A PID
 for app in writer sheet pdf; do
     case $app in writer) name="EuroOffice Writer";; sheet) name="EuroOffice Sheet";; pdf) name="EuroOffice PDF";; esac
-    "$PREFIX-$app" >"$OUT/$app.log" 2>&1 &
+    ( "$PREFIX-$app"; echo "exited with status $?" ) >"$OUT/$app.log" 2>&1 &
     if p=$(wait_window "^$name\$"); then
         PID[$app]=$p
         ok "$name started on its start page (pid $p)"
@@ -92,6 +92,7 @@ for app in writer sheet pdf; do
         fail "$name did not show its start page"
     fi
     shot "2-$app-start-page"
+    pgrep -f -- "--app=presentation" >/dev/null || echo "note: no Presentation process after $app started"
 done
 PID[presentation]=$(app_pids presentation | head -1)
 
