@@ -78,6 +78,16 @@ public:
     // statuses of the page's templates: [{id, path, app}] -> {id: status}
     static QJsonObject check(const QJsonArray& items);
 
+    // The installed library as sos/manifest.js lists it, for one application
+    // (empty = all): [{id, app, name, description, category, path, thumb,
+    // status}] with absolute paths and thumbnail file URLs. The editors'
+    // File > New reads it through the shell, so they show the same
+    // templates as the start pages without loading the manifest themselves.
+    static QJsonArray installedTemplates(const QString& app = QString(), const QString& manifest = QString());
+    // File > New of an editor: the application's usable templates, installed
+    // ones first, then My templates. Damaged or missing files are left out.
+    static QJsonArray templatesFor(const QString& app);
+
 private:
     static Status validateZip(const QString& path, const QString& ext);
     static Status validateOle(const QString& path);

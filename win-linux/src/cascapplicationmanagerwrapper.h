@@ -29,6 +29,7 @@
 #include "qascapplicationmanager.h"
 #include <QObject>
 #include <QMutex>
+#include <QJsonObject>
 #include <QDesktopServices>
 #include <vector>
 #include <memory>
@@ -203,6 +204,9 @@ public:
     static void             destroyViewer(QCefView * v);
 
     static void             closeAppWindows();      // TODO: combine with launchAppClose
+    // product name, version and copyright shown by About (start pages and
+    // the editors' File > About)
+    static QJsonObject      aboutInfo();
     static void             cancelClose();
     static void             setRtlEnabled(bool);
     static bool             isRtlEnabled();

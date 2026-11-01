@@ -44,21 +44,8 @@ CMainWindowImpl::CMainWindowImpl(const QRect &rect) :
 
 void CMainWindowImpl::refreshAboutVersion()
 {
-    QJsonObject _json_obj;
-
-    // About shows the product name, its own version and the copyright only:
-    // no engine version, architecture, package type or license link.
-    _json_obj["version"]    = ABOUT_VERSION_STR;
-
-#if defined(ABOUT_PAGE_APP_NAME)
-    _json_obj["appname"]    = ABOUT_PAGE_APP_NAME;
-#else
-    // _json_obj["appname"]    = WINDOW_NAME;
-    _json_obj["appname"]    = "Secure Office Suite";
-#endif
-    _json_obj["rights"]     = ABOUT_COPYRIGHT_STR;
-    _json_obj["link"]       = URL_SITE;
-//    _json_obj["changelog"]  = "https://github.com/ONLYOFFICE/DesktopEditors/blob/master/CHANGELOG.md";
+    // the same product name, version and copyright as the editors' File > About
+    QJsonObject _json_obj = CAscApplicationManagerWrapper::aboutInfo();
 
     AscAppManager::sendCommandTo(SEND_TO_ALL_START_PAGE, "app:version", Utils::stringifyJson(_json_obj));
 

@@ -1605,6 +1605,22 @@ void CAscApplicationManagerWrapper::gotoMainWindow(size_t src)
     });
 }
 
+QJsonObject CAscApplicationManagerWrapper::aboutInfo()
+{
+    // About shows the product name, its own version and the copyright only:
+    // no engine version, architecture, package type or license link.
+    QJsonObject _json_obj;
+    _json_obj["version"]    = ABOUT_VERSION_STR;
+#if defined(ABOUT_PAGE_APP_NAME)
+    _json_obj["appname"]    = ABOUT_PAGE_APP_NAME;
+#else
+    _json_obj["appname"]    = "Secure Office Suite";
+#endif
+    _json_obj["rights"]     = ABOUT_COPYRIGHT_STR;
+    _json_obj["link"]       = URL_SITE;
+    return _json_obj;
+}
+
 void CAscApplicationManagerWrapper::closeAppWindows()
 {
     APP_CAST(_app)
