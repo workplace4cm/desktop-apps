@@ -13,7 +13,9 @@ Icon=M4_DESKTOPEDITORS_EXEC
 Keywords=Text;Document;OpenDocument Text;Microsoft Word;Microsoft Works;odt;doc;docx;rtf;
 Categories=Office;WordProcessor;Spreadsheet;Presentation;
 dnl File types belong to EuroOffice Writer, Sheet, Presentation and PDF
-dnl (sos-app.desktop.m4): this suite entry only launches.
+dnl (sos-app.desktop.m4): this suite entry only launches, and stays out of
+dnl the menus, where the four applications appear on their own.
+NoDisplay=true
 Actions=NewDocument;NewSpreadsheet;NewPresentation;NewForm;
 StartupWMClass=_WM_CLASS
 

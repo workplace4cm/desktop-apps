@@ -70,6 +70,8 @@ rm -rf "%{buildroot}"
 %attr(-, root, root) %{_datadir}/doc/*
 %attr(-, root, root) %{_datadir}/icons/*
 %attr(-, root, root) %{_datadir}/licenses/*
+# default file types of the four applications (deb postinst uses them)
+%attr(-, root, root) %{_datadir}/%{_package_name}/*
 %attr(755, root, root) %{_bindir}/%{_desktopeditors_exec}
 # EuroOffice Writer, Sheet, Presentation and PDF
 %attr(755, root, root) %{_bindir}/%{_desktopeditors_exec}-*

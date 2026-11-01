@@ -250,9 +250,9 @@ var
   prefix: string;
 begin
 #ifdef _EuroOffice
-  SetArrayLength(AudioExts, 28);
+  SetArrayLength(AudioExts, 29);
 #else
-  SetArrayLength(AudioExts, 27);
+  SetArrayLength(AudioExts, 28);
 #endif
   SetArrayLength(AudioExtEnabled,  GetArrayLength(AudioExts));
 
@@ -286,6 +286,9 @@ begin
   AudioExts[26] := 'XLSM';
 #ifdef _EuroOffice
   AudioExts[27] := 'DOCXF';
+  AudioExts[28] := 'TXT';
+#else
+  AudioExts[27] := 'TXT';
 #endif
 
   SetArrayLength(ExtensionRegistryInfo,  GetArrayLength(AudioExts));
@@ -325,6 +328,9 @@ begin
   ExtensionRegistryInfo[26] := prefix + 'Xlsm:'         + ExpandConstant('{cm:extXLSM}')            + ':' + '37' + ':' + 'sheet';
 #ifdef _EuroOffice
   ExtensionRegistryInfo[27] := prefix + 'Docxf:'        + ExpandConstant('{cm:extDOCXF}')           + ':' + '13' + ':' + 'pdf';
+  ExtensionRegistryInfo[28] := prefix + 'Txt:'          + ExpandConstant('{cm:extTXT}')             + ':' + '20' + ':' + 'writer';
+#else
+  ExtensionRegistryInfo[27] := prefix + 'Txt:'          + ExpandConstant('{cm:extTXT}')             + ':' + '20' + ':' + 'writer';
 #endif
 end;
 
@@ -556,18 +562,56 @@ begin
        RegWriteStringValue(HKEY_LOCAL_MACHINE, regpath, 'MenuText', ExpandConstant('@{app}\{#iconsExe},-' + values[4]));
        RegWriteStringValue(HKEY_LOCAL_MACHINE, regpath, 'ItemName', ExpandConstant('@{app}\{#iconsExe},-' + values[5]));
      end;
-     if version.Major = 10 then begin
+     // Explorer's New menu needs the type to name a ProgID; one that already
+     // has an application keeps it unless the user associated it (DoPostInstall)
+     if (version.Major = 10) and not RegValueExists(HKEY_LOCAL_MACHINE, 'Software\Classes\' + values[1], '') then
        RegWriteStringValue(HKEY_LOCAL_MACHINE, 'Software\Classes\' + values[1], '', '{#ASCC_REG_PREFIX}' + values[2]);
-       if RegValueExists(HKEY_CURRENT_USER, 'Software\Classes\' + values[1], '') then
-         RegWriteStringValue(HKEY_CURRENT_USER, 'Software\Classes\' + values[1], '', '{#ASCC_REG_PREFIX}' + values[2]);
-     end;
   end;
+end;
+
+// Windows 10 and 11 keep each user's own choice of default application
+// (UserChoice), which setup cannot change. The supported way for an
+// organisation is a default associations file named by policy: Windows
+// applies it to every user at sign-in. Setup writes the file for the file
+// types it associated and names it in the policy, unless another file is
+// already configured there (by a domain policy, say) or /NOASSOCPOLICY is
+// given. Uninstall takes both away again.
+function SosAssocXmlPath: string;
+begin
+  Result := ExpandConstant('{app}\DefaultAssociations.xml');
+end;
+
+procedure SetDefaultAssociationsPolicy(entries: string);
+var
+  current: string;
+begin
+  SaveStringToFile(SosAssocXmlPath, '<?xml version="1.0" encoding="UTF-8"?>' + #13#10 +
+                   '<DefaultAssociations>' + #13#10 + entries + '</DefaultAssociations>' + #13#10, False);
+  if CheckCommandlineParam('/NOASSOCPOLICY') then
+    exit;
+  current := '';
+  RegQueryStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\Policies\Microsoft\Windows\System', 'DefaultAssociationsConfiguration', current);
+  if (Length(current) = 0) or (CompareText(current, SosAssocXmlPath) = 0) then
+    RegWriteStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\Policies\Microsoft\Windows\System', 'DefaultAssociationsConfiguration', SosAssocXmlPath)
+  else
+    Log('Default associations policy already names ' + current + '; left as it is');
+end;
+
+procedure RemoveDefaultAssociationsPolicy;
+var
+  current: string;
+begin
+  current := '';
+  if RegQueryStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\Policies\Microsoft\Windows\System', 'DefaultAssociationsConfiguration', current) and
+        (CompareText(current, SosAssocXmlPath) = 0) then
+    RegDeleteValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\Policies\Microsoft\Windows\System', 'DefaultAssociationsConfiguration');
+  DeleteFile(SosAssocXmlPath);
 end;
 
 procedure DoPostInstall();
 var
   i, errorCode: Integer;
-  ext, progId1, progId2, progId3, assocArg: string;
+  ext, progId1, progId2, progId3, assocArg, assocXml: string;
   argsArray: TArrayOfString;
   cleanExts, extensionInfo: TArrayOfString;
   version: TWindowsVersion;
@@ -579,6 +623,7 @@ begin
     end;
 
     assocArg := '';
+    assocXml := '';
     GetWindowsVersionEx(version);
     for  i := 0 to GetArrayLength(AudioExts) - 1 do
     begin
@@ -605,41 +650,37 @@ begin
 
       if isAssociateExtension(i) then
       begin
-        if not RegValueExists(HKEY_LOCAL_MACHINE, 'Software\Classes\.' + ext, '') then begin
-          RegWriteStringValue(HKEY_LOCAL_MACHINE, 'Software\Classes\.' + ext, '', argsArray[0])
-        end else
-          RegQueryStringValue(HKEY_LOCAL_MACHINE, 'Software\Classes\.' + ext, '', progId1);
+        // the file type opens in its application from now on: remember what
+        // opened it before (uninstall puts that back), then take it over
+        progId1 := '';
+        if RegQueryStringValue(HKEY_LOCAL_MACHINE, 'Software\Classes\.' + ext, '', progId1) and
+              (Length(progId1) <> 0) and (CompareText(progId1, argsArray[0]) <> 0) and
+              not RegValueExists(HKEY_LOCAL_MACHINE, '{#APP_REG_PATH}\PreviousAssociations', '.' + ext) then
+          RegWriteStringValue(HKEY_LOCAL_MACHINE, '{#APP_REG_PATH}\PreviousAssociations', '.' + ext, progId1);
+        RegWriteStringValue(HKEY_LOCAL_MACHINE, 'Software\Classes\.' + ext, '', argsArray[0]);
 
         if not RegValueExists(HKEY_LOCAL_MACHINE, 'Software\Classes\.' + ext + '\OpenWithProgids', argsArray[0]) then
           RegWriteStringValue(HKEY_LOCAL_MACHINE, 'Software\Classes\.' + ext + '\OpenWithProgids', argsArray[0], '');
 
-        if RegValueExists(HKEY_CURRENT_USER, 'Software\Classes\.' + ext, '') then
-          RegQueryStringValue(HKEY_CURRENT_USER, 'Software\Classes\.' + ext, '', progId2);
+        // the installing user's earlier choice of another application
+        progId2 := '';
+        if RegQueryStringValue(HKEY_CURRENT_USER, 'Software\Classes\.' + ext, '', progId2) and
+              (Length(progId2) <> 0) and (CompareText(progId2, argsArray[0]) <> 0) then
+          RegWriteStringValue(HKEY_CURRENT_USER, 'Software\Classes\.' + ext, '', argsArray[0]);
+        progId3 := '';
+        if RegQueryStringValue(HKEY_CURRENT_USER, 'Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.' + ext + '\UserChoice', 'ProgId', progId3) and
+              (CompareText(progId3, argsArray[0]) <> 0) then
+          // Windows may refuse this (PDF on recent Windows 11); the
+          // default associations policy below covers it at next sign-in
+          RegDeleteKeyIncludingSubkeys(HKEY_CURRENT_USER, 'Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.' + ext + '\UserChoice');
 
-        if RegValueExists(HKEY_CURRENT_USER, 'Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.' + ext + '\UserChoice', 'ProgId') then
-          RegQueryStringValue(HKEY_CURRENT_USER, 'Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.' + ext + '\UserChoice', 'ProgId', progId3);
-
-        if ((Length(progId3) <> 0) and (CompareText(progId3, argsArray[0]) <> 0)) or
-              ((Length(progId2) <> 0) and (CompareText(progId2, argsArray[0]) <> 0)) or
-              ((Length(progId1) <> 0) and (CompareText(progId1, argsArray[0]) <> 0)) then
-        begin
-          if (version.Major > 6) or ((version.Major = 6) and (version.Minor >= 2)) then begin
-            assocArg := assocArg + '.' + ext + ':' + argsArray[0] + ';';
-          end else begin
-            RegDeleteKeyIncludingSubkeys(HKEY_CURRENT_USER, 'Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.' + ext + '\UserChoice');
-            RegWriteStringValue(HKEY_CURRENT_USER, 'Software\Classes\.' + ext, '', argsArray[0])
-            //RegWriteStringValue(HKEY_CURRENT_USER, 'Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.' + ext + '\UserChoice', 'Progid', argsArray[0]);
-          end;
-        end;
-      end else
-      begin
-        //RegWriteStringValue(HKEY_LOCAL_MACHINE, 'Software\Classes\.' + ext + '\OpenWithProgids', argsArray[0], '');
+        assocXml := assocXml + '  <Association Identifier=".' + ext + '" ProgId="' + argsArray[0] +
+                    '" ApplicationName="' + SosAppName(argsArray[3]) + '" />' + #13#10;
       end;
     end;
 
-    if Length(assocArg) <> 0 then begin
-      ShellExecAsOriginalUser('', ExpandConstant('{app}\{#iconsExe}'), '--assoc ' + assocArg, '', SW_SHOW, ewNoWait, errorCode);
-    end;
+    if Length(assocXml) <> 0 then
+      SetDefaultAssociationsPolicy(assocXml);
 
   AddToDefaultPrograms;
   AddContextMenuNewItems;
@@ -695,7 +736,7 @@ procedure UnassociateExtensions;
 var
   i: Integer;
   argsArray: TArrayOfString;
-  ext, str: string;
+  ext, str, prev: string;
   version: TWindowsVersion;
 begin
   initExtensions();
@@ -709,14 +750,23 @@ begin
     RegDeleteValue(HKEY_LOCAL_MACHINE, 'Software\Classes\.' + ext + '\OpenWithProgids', argsArray[0]);
     RegDeleteValue(HKEY_LOCAL_MACHINE, 'Software\Classes\.' + ext + '\OpenWithProgids', ExpandConstant('{#ASSOC_PROG_ID}'));
 
+    // the application that opened the type before setup took it over
+    str := '';
     RegQueryStringValue(HKEY_LOCAL_MACHINE, 'Software\Classes\.' + ext, '', str);
-    if CompareText(str, argsArray[0]) = 0 then
-      RegDeleteValue(HKEY_LOCAL_MACHINE, 'Software\Classes\.' + ext, '');
+    if CompareText(str, argsArray[0]) = 0 then begin
+      prev := '';
+      if RegQueryStringValue(HKEY_LOCAL_MACHINE, '{#APP_REG_PATH}\PreviousAssociations', '.' + ext, prev) and (Length(prev) <> 0) then
+        RegWriteStringValue(HKEY_LOCAL_MACHINE, 'Software\Classes\.' + ext, '', prev)
+      else
+        RegDeleteValue(HKEY_LOCAL_MACHINE, 'Software\Classes\.' + ext, '');
+    end;
 
+    str := '';
     RegQueryStringValue(HKEY_CURRENT_USER, 'Software\Classes\.' + ext, '', str);
     if CompareText(str, argsArray[0]) = 0 then
       RegDeleteValue(HKEY_CURRENT_USER, 'Software\Classes\.' + ext, '');
 
+    str := '';
     RegQueryStringValue(HKEY_CURRENT_USER, 'Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.' + ext + '\UserChoice', 'Progid', str);
     if CompareText(str, argsArray[0]) = 0 then
       RegDeleteKeyIncludingSubkeys(HKEY_CURRENT_USER, 'Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.' + ext + '\UserChoice');
@@ -724,6 +774,9 @@ begin
     //RegDeleteKeyIncludingSubkeys(HKEY_LOCAL_MACHINE, ExpandConstant('Software\Classes\Applications\{#NAME_EXE_OUT})'));
     RegDeleteKeyIncludingSubkeys(HKEY_LOCAL_MACHINE, ExpandConstant('Software\Classes\.' + ext + '\OpenWithList\{#NAME_EXE_OUT}'));
   end;
+
+  RegDeleteKeyIncludingSubkeys(HKEY_LOCAL_MACHINE, '{#APP_REG_PATH}\PreviousAssociations');
+  RemoveDefaultAssociationsPolicy;
 
   RegDeleteKeyIncludingSubkeys(HKEY_LOCAL_MACHINE, '{#APP_REG_PATH}\Capabilities');
   RegDeleteValue(HKEY_LOCAL_MACHINE, 'Software\RegisteredApplications', '{#ASCC_REG_REGISTERED_APP_NAME}');
@@ -995,15 +1048,24 @@ begin
       Exec(ExpandConstant('{app}\updatesvc.exe'), '--delete', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
     end;
 
+    // the file types go back to the applications that had them, before
+    // the settings below (which remember those) can be cleared
+    UnassociateExtensions();
+
     RegQueryStringValue(GetHKLM(), ExpandConstant('{#APP_REG_PATH}'), 'uninstall', regValue);
 
+    // User settings and recent documents stay unless the user says to clear
+    // them: "No" is the default answer, and a silent uninstall keeps them
+    // (/uninst=full at install time clears them without asking). Documents
+    // and crash-recovery copies (recover*) are never deleted.
     if (regValue <> 'full') and
 #ifndef UNINSTALL_USE_CLEAR_PAGE
-        (MsgBox(ExpandConstant('{cm:WarningClearAppData}'), mbConfirmation, MB_YESNO) = IDYES)
+        (SuppressibleMsgBox(ExpandConstant('{cm:WarningClearAppData}'), mbConfirmation, MB_YESNO or MB_DEFBUTTON2, IDNO) = IDYES)
 #else
         IsClearData
 #endif
             then regValue := 'soft';
+    if regValue = 'full' then regValue := 'soft';
 
     userPath := ExpandConstant('{localappdata}\{#sIntCompanyName}');
     if regValue = 'soft' then begin
@@ -1020,7 +1082,7 @@ begin
             if findRec.Attributes and FILE_ATTRIBUTE_DIRECTORY = 0 then
               DeleteFile(userPath + '\' + findRec.Name)
             else if (findRec.Name <> '.') and (findRec.Name <> '..') and
-                (findRec.Name <> 'recover') and (findRec.Name <> 'sdkjs-plugins') then begin
+                (Copy(findRec.Name, 1, 7) <> 'recover') and (findRec.Name <> 'sdkjs-plugins') then begin
               DelTree(userPath + '\' + findRec.Name, True, True, True);
             end;
           until not FindNext(findRec);
@@ -1029,14 +1091,7 @@ begin
         end;
       end;
 
-    end else
-    if regValue = 'full' then begin
-      DelTree(userPath, True, True, True);
-      RegDeleteKeyIncludingSubkeys(GetHKLM(), 'Software\{#sIntCompanyName}');
-      RegDeleteKeyIncludingSubkeys(HKEY_CURRENT_USER, 'Software\{#sIntCompanyName}');
     end;
-
-    UnassociateExtensions();
   end else
   if CurUninstallStep = usPostUninstall then begin
     RemoveExtraFiles();

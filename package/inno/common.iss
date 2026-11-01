@@ -218,37 +218,35 @@ Type: files; Name: "{commondesktop}\{#sOldAppIconName}.lnk"; Tasks: desktopicon;
 Type: files; Name: "{group}\{#sOldAppIconName}.lnk";
 ; the desktop now has the four applications instead of the suite page
 Type: files; Name: "{commondesktop}\{#sAppIconName}.lnk";
+; and so has the Start Menu: earlier versions kept the suite, the four
+; applications, New document entries and Uninstall in a Start Menu folder
+Type: filesandordirs; Name: "{commonprograms}\{#sCompanyName}";
 
 [Tasks]
-Name: desktopicon; Description: {cm:CreateDesktopIcon,{#sAppName}}; GroupDescription: {cm:AdditionalIcons};
+Name: desktopicon; Description: {cm:SosCreateDesktopIcons}; GroupDescription: {cm:AdditionalIcons};
 ;Name: fileassoc; Description: {cm:AssociateCaption};   GroupDescription: {cm:AssociateDescription};
 
 
 [Icons]
 ;Name: {commondesktop}\{#sAppName}; FileName: {app}\{#NAME_EXE_OUT}; WorkingDir: {app}; Tasks: desktopicon;
-Name: {group}\{#sAppIconName};         Filename: {app}\{#iconsExe}; WorkingDir: {app}; IconFilename: {app}\app.ico; AppUserModelID: {#APP_USER_MODEL_ID};
 ; EuroOffice Writer, Sheet, Presentation and PDF: four applications, each with
-; its own shortcut, icon and taskbar identity (AppUserModelID, the same the
-; running application sets: cappidentity.cpp), opening on its own start page
-Name: "{group}\EuroOffice Writer";       Filename: "{app}\{#iconsExe}"; Parameters: "--app=writer";       WorkingDir: {app}; IconFilename: "{app}\icons\writer.ico";       AppUserModelID: "{#APP_ID_PREFIX}.Writer";
-Name: "{group}\EuroOffice Sheet";        Filename: "{app}\{#iconsExe}"; Parameters: "--app=sheet";        WorkingDir: {app}; IconFilename: "{app}\icons\sheet.ico";        AppUserModelID: "{#APP_ID_PREFIX}.Sheet";
-Name: "{group}\EuroOffice Presentation"; Filename: "{app}\{#iconsExe}"; Parameters: "--app=presentation"; WorkingDir: {app}; IconFilename: "{app}\icons\presentation.ico"; AppUserModelID: "{#APP_ID_PREFIX}.Presentation";
-Name: "{group}\EuroOffice PDF";          Filename: "{app}\{#iconsExe}"; Parameters: "--app=pdf";          WorkingDir: {app}; IconFilename: "{app}\icons\pdf.ico";          AppUserModelID: "{#APP_ID_PREFIX}.Pdf";
-Name: "{commondesktop}\EuroOffice Writer";       Filename: "{app}\{#iconsExe}"; Parameters: "--app=writer";       WorkingDir: {app}; IconFilename: "{app}\icons\writer.ico";       AppUserModelID: "{#APP_ID_PREFIX}.Writer";       Tasks: desktopicon;
-Name: "{commondesktop}\EuroOffice Sheet";        Filename: "{app}\{#iconsExe}"; Parameters: "--app=sheet";        WorkingDir: {app}; IconFilename: "{app}\icons\sheet.ico";        AppUserModelID: "{#APP_ID_PREFIX}.Sheet";        Tasks: desktopicon;
-Name: "{commondesktop}\EuroOffice Presentation"; Filename: "{app}\{#iconsExe}"; Parameters: "--app=presentation"; WorkingDir: {app}; IconFilename: "{app}\icons\presentation.ico"; AppUserModelID: "{#APP_ID_PREFIX}.Presentation"; Tasks: desktopicon;
-Name: "{commondesktop}\EuroOffice PDF";          Filename: "{app}\{#iconsExe}"; Parameters: "--app=pdf";          WorkingDir: {app}; IconFilename: "{app}\icons\pdf.ico";          AppUserModelID: "{#APP_ID_PREFIX}.Pdf";          Tasks: desktopicon;
-Name: {group}\{cm:Uninstall}; IconFilename: {app}\{#iconsExe}; IconIndex: 25; Filename: {uninstallexe}; WorkingDir: {app};
-Name: "{group}\{cm:jumpDOCX}"; IconFilename: "{app}\{#iconsExe}"; IconIndex: 14; Filename: "{app}\{#iconsExe}"; Parameters: "--app=writer --new:word";       AppUserModelID: "{#APP_ID_PREFIX}.Writer";
-Name: "{group}\{cm:jumpXLSX}"; IconFilename: "{app}\{#iconsExe}"; IconIndex: 15; Filename: "{app}\{#iconsExe}"; Parameters: "--app=sheet --new:cell";        AppUserModelID: "{#APP_ID_PREFIX}.Sheet";
-Name: "{group}\{cm:jumpPPTX}"; IconFilename: "{app}\{#iconsExe}"; IconIndex: 16; Filename: "{app}\{#iconsExe}"; Parameters: "--app=presentation --new:slide"; AppUserModelID: "{#APP_ID_PREFIX}.Presentation";
-#ifdef _EuroOffice
-Name: "{group}\{cm:jumpDOCXF}"; IconFilename: "{app}\{#iconsExe}"; IconIndex: 17; Filename: "{app}\{#iconsExe}"; Parameters: "--app=pdf --new:form";         AppUserModelID: "{#APP_ID_PREFIX}.Pdf";
-#endif
+; its own Start Menu entry (at the top level, as Windows lists applications),
+; desktop shortcut, icon and taskbar identity (AppUserModelID, the same the
+; running application sets: cappidentity.cpp), opening on its own start page.
+; No suite entry: Settings > Apps uninstalls, and each application's jump list
+; makes new documents.
+Name: "{autoprograms}\EuroOffice Writer";       Filename: "{app}\{#iconsExe}"; Parameters: "--app=writer";       WorkingDir: {app}; IconFilename: "{app}\icons\writer.ico";       AppUserModelID: "{#APP_ID_PREFIX}.Writer";       Comment: "{cm:SosWriterComment}";
+Name: "{autoprograms}\EuroOffice Sheet";        Filename: "{app}\{#iconsExe}"; Parameters: "--app=sheet";        WorkingDir: {app}; IconFilename: "{app}\icons\sheet.ico";        AppUserModelID: "{#APP_ID_PREFIX}.Sheet";        Comment: "{cm:SosSheetComment}";
+Name: "{autoprograms}\EuroOffice Presentation"; Filename: "{app}\{#iconsExe}"; Parameters: "--app=presentation"; WorkingDir: {app}; IconFilename: "{app}\icons\presentation.ico"; AppUserModelID: "{#APP_ID_PREFIX}.Presentation"; Comment: "{cm:SosPresentationComment}";
+Name: "{autoprograms}\EuroOffice PDF";          Filename: "{app}\{#iconsExe}"; Parameters: "--app=pdf";          WorkingDir: {app}; IconFilename: "{app}\icons\pdf.ico";          AppUserModelID: "{#APP_ID_PREFIX}.Pdf";          Comment: "{cm:SosPdfComment}";
+Name: "{commondesktop}\EuroOffice Writer";       Filename: "{app}\{#iconsExe}"; Parameters: "--app=writer";       WorkingDir: {app}; IconFilename: "{app}\icons\writer.ico";       AppUserModelID: "{#APP_ID_PREFIX}.Writer";       Comment: "{cm:SosWriterComment}";       Tasks: desktopicon;
+Name: "{commondesktop}\EuroOffice Sheet";        Filename: "{app}\{#iconsExe}"; Parameters: "--app=sheet";        WorkingDir: {app}; IconFilename: "{app}\icons\sheet.ico";        AppUserModelID: "{#APP_ID_PREFIX}.Sheet";        Comment: "{cm:SosSheetComment}";        Tasks: desktopicon;
+Name: "{commondesktop}\EuroOffice Presentation"; Filename: "{app}\{#iconsExe}"; Parameters: "--app=presentation"; WorkingDir: {app}; IconFilename: "{app}\icons\presentation.ico"; AppUserModelID: "{#APP_ID_PREFIX}.Presentation"; Comment: "{cm:SosPresentationComment}"; Tasks: desktopicon;
+Name: "{commondesktop}\EuroOffice PDF";          Filename: "{app}\{#iconsExe}"; Parameters: "--app=pdf";          WorkingDir: {app}; IconFilename: "{app}\icons\pdf.ico";          AppUserModelID: "{#APP_ID_PREFIX}.Pdf";          Comment: "{cm:SosPdfComment}";          Tasks: desktopicon;
 
 [Run]
 ;Filename: {app}\{#NAME_EXE_OUT}; Description: {cm:Launch,{#sAppName}}; Flags: postinstall nowait skipifsilent;
-Filename: {app}\{#iconsExe}; Description: {cm:Launch,{#sAppName}}; Flags: postinstall nowait skipifsilent runasoriginaluser;
+Filename: {app}\{#iconsExe}; Parameters: "--app=writer"; Description: {cm:Launch,EuroOffice Writer}; Flags: postinstall nowait skipifsilent runasoriginaluser;
 ;Filename: http://www.onlyoffice.com/remove-portal-feedback-form.aspx; Description: Visit website; Flags: postinstall shellexec nowait
 ;Filename: ms-settings:defaultapps; Description: {cm:runOpenDefaultApps}; Flags:postinstall shellexec nowait unchecked; MinVersion: 10.0.10240;
 

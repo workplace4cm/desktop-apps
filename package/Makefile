@@ -67,6 +67,10 @@ SOS_APPS := writer sheet presentation pdf
 SOS_DESKTOP_FILES := $(foreach a,$(SOS_APPS),build/main/usr/share/applications/$(DESKTOPEDITORS_EXEC)-$(a).desktop)
 SOS_BIN_FILES := $(foreach a,$(SOS_APPS),build/main/usr/bin/$(DESKTOPEDITORS_EXEC)-$(a))
 SOS_ICON_SIZES := 16 24 32 48 64 128 256
+# their default file types (copied into /etc/xdg/mimeapps.list by postinst)
+# and a command that puts their shortcuts on a user's desktop
+SOS_MIMEAPPS := build/main/usr/share/$(PACKAGE_NAME)/mimeapps.list
+SOS_SHORTCUTS_BIN := build/main/usr/bin/$(DESKTOPEDITORS_EXEC)-desktop-shortcuts
 SOS_ICONS := $(foreach a,$(SOS_APPS),$(foreach n,$(SOS_ICON_SIZES),build/main/usr/share/icons/hicolor/$(n)x$(n)/apps/$(DESKTOPEDITORS_EXEC)-$(a).png)) \
 	$(foreach a,$(SOS_APPS),build/main/usr/share/icons/hicolor/scalable/apps/$(DESKTOPEDITORS_EXEC)-$(a).svg)
 LINUX_DEPS += $(BIN_FILES)
@@ -74,6 +78,8 @@ LINUX_DEPS += $(DESKTOP_FILES)
 LINUX_DEPS += $(SOS_DESKTOP_FILES)
 LINUX_DEPS += $(SOS_BIN_FILES)
 LINUX_DEPS += $(SOS_ICONS)
+LINUX_DEPS += $(SOS_MIMEAPPS)
+LINUX_DEPS += $(SOS_SHORTCUTS_BIN)
 LINUX_DEPS += $(CHANGELOG_RPM)
 LINUX_DEPS += $(patsubst $(BRANDING_DIR)/common/linux/icons-eo/%.png, \
 	build/main/usr/share/icons/hicolor/%/apps/$(DESKTOPEDITORS_EXEC).png, \
@@ -85,6 +91,7 @@ DEB_DEPS += $(CHANGELOG_DEB)
 DEB_DEPS += deb/build/debian/compat
 DEB_DEPS += deb/build/debian/control
 DEB_DEPS += deb/build/debian/copyright
+DEB_DEPS += deb/build/debian/postinst
 DEB_DEPS += deb/build/debian/postrm
 DEB_DEPS += deb/build/debian/rules
 DEB_DEPS += deb/build/debian/source/format
@@ -370,6 +377,13 @@ $(SOS_DESKTOP_FILES) : build/main/usr/share/applications/$(DESKTOPEDITORS_EXEC)-
 # each application's own command, e.g. secure-office-suite-desktopeditors-writer
 $(SOS_BIN_FILES) : build/main/usr/bin/$(DESKTOPEDITORS_EXEC)-% : common/linux/sos-app.sh.m4
 	mkdir -p $(@D) && m4 -I "$(BRANDING_DIR)/common/linux" $(M4_PARAMS) -D M4_SOS_APP=$* $< > $@
+	chmod 755 $@
+
+$(SOS_MIMEAPPS) : common/linux/sos-mimeapps.list.m4
+	mkdir -p $(@D) && m4 -I "$(BRANDING_DIR)/common/linux" $(M4_PARAMS) $< > $@
+
+$(SOS_SHORTCUTS_BIN) : common/linux/sos-desktop-shortcuts.sh.m4
+	mkdir -p $(@D) && m4 -I "$(BRANDING_DIR)/common/linux" $(M4_PARAMS) $< > $@
 	chmod 755 $@
 
 # each application's own icon (tools/sos-apps/make_app_icons.py)
