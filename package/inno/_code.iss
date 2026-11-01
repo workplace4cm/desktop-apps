@@ -673,7 +673,9 @@ begin
           // Windows may refuse this (its UCPD driver guards PDF); the
           // default associations policy below covers it at next sign-in
           if not RegDeleteKeyIncludingSubkeys(HKEY_CURRENT_USER, 'Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.' + ext + '\UserChoice') then
-            Log('Windows kept the user''s choice of ' + progId3 + ' for .' + ext + '; the default associations policy applies at next sign-in');
+            Log('Windows kept the user''s choice of ' + progId3 + ' for .' + ext + '; the default associations policy applies at next sign-in')
+          else
+            Log('Cleared the user''s choice of ' + progId3 + ' for .' + ext);
 
         assocXml := assocXml + '  <Association Identifier=".' + ext + '" ProgId="' + argsArray[0] +
                     '" ApplicationName="' + SosAppName(argsArray[3]) + '" />' + #13#10;

@@ -181,7 +181,14 @@ function Check-FileTypes([string]$when) {
         elseif (Guarded $ext) {
             Write-Host "NOTE: Windows guards the user's own choice for $ext ($(UserChoiceOf $ext), UCPD driver running), so setup cannot change it; the default associations policy gives $ext to $($Apps[$app]) at the next sign-in ($when)"
         }
-        else { Fail "Explorer opens $ext with '$resolved' (UserChoice: $((Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\$ext\UserChoice" -ErrorAction SilentlyContinue).ProgId)) ($when)" }
+        else {
+            Fail "Explorer opens $ext with '$resolved' (UserChoice: $(UserChoiceOf $ext)) ($when)"
+            $uc = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\$ext"
+            Get-ChildItem $uc -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "    key: $($_.Name) $((Get-ItemProperty $_.PSPath | Out-String).Trim() -replace '\s+', ' ')" }
+            (Get-Acl "$uc\UserChoice" -ErrorAction SilentlyContinue).Access | ForEach-Object { Write-Host "    acl: $($_.AccessControlType) $($_.IdentityReference) $($_.RegistryRights)" }
+            Write-Host "    UCPD: $((Get-Service UCPD -ErrorAction SilentlyContinue).Status)"
+            Get-ChildItem $Out -Filter *.log | Select-String -SimpleMatch "for $ext" | ForEach-Object { Write-Host "    log: $($_.Filename): $($_.Line)" }
+        }
     }
 }
 
@@ -315,6 +322,7 @@ New-Item -ItemType Directory -Force -Path (Join-Path $UserData 'DesktopEditors')
 Set-Content (Join-Path $UserData 'DesktopEditors\sos-integration-marker.txt') "user data $(Get-Date)"
 New-Item -Force -Path $UserReg -ErrorAction SilentlyContinue | Out-Null
 Set-ItemProperty $UserReg -Name SosIntegrationMarker -Value 'keep me'
+Set-ItemProperty $UserReg -Name locale -Value 'de-DE'   # the user picked another language
 $regBefore = (Get-ItemProperty $UserReg | Out-String)
 $snap = Snapshot
 $snap | Set-Content (Join-Path $Out 'user-files-before.txt')
@@ -329,7 +337,12 @@ $after = Snapshot
 $diff = Compare-Object @($snap) @($after)
 if (-not $diff) { Pass "the upgrade kept every settings, recents, recovery and document file unchanged" }
 else { Fail "user files changed in the upgrade:"; $diff | Format-Table -AutoSize | Out-String | Write-Host }
-if ((Get-ItemProperty $UserReg -ErrorAction SilentlyContinue | Out-String) -eq $regBefore) { Pass "the upgrade kept the user's settings in the registry" } else { Fail "user registry settings changed in the upgrade" }
+$regAfter = (Get-ItemProperty $UserReg -ErrorAction SilentlyContinue | Out-String)
+if ($regAfter -eq $regBefore) { Pass "the upgrade kept the user's settings in the registry" }
+else {
+    Fail "user registry settings changed in the upgrade"
+    Compare-Object ($regBefore -split "`r?`n") ($regAfter -split "`r?`n") | ForEach-Object { Write-Host "    $($_.SideIndicator) $($_.InputObject)" }
+}
 Check-FileTypes 'after upgrade'
 Start-Process -FilePath (Join-Path $Docs 'Sample.xlsx')
 Expect-Document (Join-Path $Docs 'Sample.xlsx') 'double-click after upgrade'
