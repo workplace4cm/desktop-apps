@@ -10,6 +10,8 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QHash>
+#include <QJsonDocument>
+#include <QRegularExpression>
 #include <QStandardPaths>
 #include <QUrl>
 #include <QtEndian>
@@ -404,5 +406,68 @@ QJsonObject CTemplateLibrary::check(const QJsonArray& items)
             continue;
         out[id] = isLibraryPath(path) ? statusName(validate(path, o["app"].toString())) : QString("outside");
     }
+    return out;
+}
+
+QJsonArray CTemplateLibrary::installedTemplates(const QString& app, const QString& manifestArg)
+{
+    QJsonArray out;
+    const QString manifest = manifestArg.isEmpty() ? installedFolder() + "/sos/manifest.js" : manifestArg;
+    QFile f(manifest);
+    if ( installedFolder().isEmpty() && manifestArg.isEmpty() )
+        return out;
+    if ( !f.open(QIODevice::ReadOnly) )
+        return out;
+
+    // the list is strict JSON between the sos-templates markers
+    static const QRegularExpression re("/\\*\\s*sos-templates:begin\\s*\\*/(.*)/\\*\\s*sos-templates:end\\s*\\*/",
+                                       QRegularExpression::DotMatchesEverythingOption);
+    const QRegularExpressionMatch m = re.match(QString::fromUtf8(f.read(4 * 1024 * 1024)));
+    if ( !m.hasMatch() )
+        return out;
+
+    QJsonParseError err;
+    const QJsonDocument doc = QJsonDocument::fromJson(m.captured(1).toUtf8(), &err);
+    if ( err.error != QJsonParseError::NoError )
+        return out;
+
+    const QJsonArray list = doc.isArray() ? doc.array() : doc.object().value("templates").toArray();
+    const QDir base = QFileInfo(manifest).absoluteDir();
+    for (const QJsonValue& v : list) {
+        const QJsonObject t = v.toObject();
+        const QString t_app = t["app"].toString(), file = t["file"].toString();
+        if ( file.isEmpty() || t_app.isEmpty() || (!app.isEmpty() && t_app != app) )
+            continue;
+
+        const QString path = QDir::cleanPath(base.absoluteFilePath(file));
+        const QString thumb = t["thumb"].toString();
+        const Status st = isLibraryPath(path) ? validate(path, t_app) : Status::Missing;
+        out.append(QJsonObject{
+            {"id", t["id"].toString().isEmpty() ? t_app + ":" + file : t["id"].toString()},
+            {"app", t_app},
+            {"name", t["name"].toString()},
+            {"description", t["description"].toString()},
+            {"category", t["category"].toString()},
+            {"path", QDir::toNativeSeparators(path)},
+            {"thumb", thumb.isEmpty() ? QString() :
+                        QUrl::fromLocalFile(QDir::cleanPath(base.absoluteFilePath(thumb))).toString()},
+            {"status", statusName(st)},
+        });
+    }
+    return out;
+}
+
+QJsonArray CTemplateLibrary::templatesFor(const QString& app)
+{
+    QJsonArray out;
+    const auto add = [&out, &app](const QJsonArray& list) {
+        for (const QJsonValue& v : list) {
+            const QJsonObject t = v.toObject();
+            if ( t["app"].toString() == app && t["status"].toString() == statusName(Status::Ok) )
+                out.append(t);
+        }
+    };
+    add(installedTemplates(app));
+    add(scanUserFolder());
     return out;
 }

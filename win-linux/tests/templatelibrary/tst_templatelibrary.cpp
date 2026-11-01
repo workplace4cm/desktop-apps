@@ -196,6 +196,69 @@ private slots:
             QVERIFY(CTemplateLibrary::isLibraryPath(v.toObject()["path"].toString()));
     }
 
+    // File > New in the editors: the manifest read by the shell
+    void installedTemplatesFollowTheManifest()
+    {
+        const QJsonArray list = manifest();
+        for (const QString app : {"writer", "sheet", "presentation", "pdf"}) {
+            int expected = 0;
+            for (const QJsonValue& v : list)
+                expected += v.toObject()["app"].toString() == app;
+
+            const QJsonArray got = CTemplateLibrary::installedTemplates(app);
+            QCOMPARE(got.size(), expected);
+            QVERIFY(expected > 0);
+            for (const QJsonValue& v : got) {
+                const QJsonObject t = v.toObject();
+                QCOMPARE(t["app"].toString(), app);
+                QCOMPARE(t["status"].toString(), QString("ok"));
+                QVERIFY(!t["name"].toString().isEmpty());
+                QVERIFY(QFileInfo(t["path"].toString()).isAbsolute());
+                QVERIFY(QFileInfo::exists(t["path"].toString()));
+                QVERIFY(CTemplateLibrary::isLibraryPath(t["path"].toString()));
+                QVERIFY(t["thumb"].toString().startsWith("file:"));
+                QVERIFY(QFileInfo::exists(QUrl(t["thumb"].toString()).toLocalFile()));
+            }
+        }
+        QCOMPARE(CTemplateLibrary::installedTemplates().size(), list.size());
+    }
+
+    void templatesForAnApplication()
+    {
+        copy(FIXTURES "/letter.ott", "My Templates/Letter.ott");
+        write("My Templates/Broken.dotx", "PK\x03\x04 not a package");
+        copy(FIXTURES "/budget.ots", "My Templates/Budget.ots");
+
+        const QJsonArray writer = CTemplateLibrary::templatesFor("writer");
+        QCOMPARE(writer.size(), CTemplateLibrary::installedTemplates("writer").size() + 1);
+        QCOMPARE(writer.last().toObject()["name"].toString(), QString("Letter"));
+        QVERIFY(writer.last().toObject()["user"].toBool());
+        for (const QJsonValue& v : writer) {
+            QCOMPARE(v.toObject()["app"].toString(), QString("writer"));
+            QCOMPARE(v.toObject()["status"].toString(), QString("ok"));
+        }
+
+        const QJsonArray sheet = CTemplateLibrary::templatesFor("sheet");
+        QCOMPARE(sheet.last().toObject()["name"].toString(), QString("Budget"));
+        QCOMPARE(CTemplateLibrary::templatesFor("nothing").size(), 0);
+    }
+
+    void badManifest()
+    {
+        QCOMPARE(CTemplateLibrary::installedTemplates("writer", write("m1.js", "var x = 1;")).size(), 0);
+        QCOMPARE(CTemplateLibrary::installedTemplates("writer",
+                    write("m2.js", "/* sos-templates:begin */ {broken /* sos-templates:end */")).size(), 0);
+        // an entry pointing outside the library is never offered
+        const QString m = write("lib/m3.js", "/* sos-templates:begin */ {\"templates\": ["
+                                "{\"id\": \"writer.x\", \"app\": \"writer\", \"name\": \"X\", \"file\": \"../../x.dotx\"}]}"
+                                " /* sos-templates:end */");
+        copy(FIXTURES "/letter.ott", "x.dotx");
+        const QJsonArray got = CTemplateLibrary::installedTemplates("writer", m);
+        QCOMPARE(got.size(), 1);
+        QVERIFY(got.at(0).toObject()["status"].toString() != "ok");
+        QCOMPARE(CTemplateLibrary::installedTemplates("writer", m_dir.path() + "/none.js").size(), 0);
+    }
+
     void messages()
     {
         for (St s : {St::Missing, St::NoAccess, St::Empty, St::TooLarge, St::Damaged, St::WrongType, St::Macros})

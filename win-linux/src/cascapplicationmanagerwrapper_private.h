@@ -41,6 +41,7 @@
 #include "crecentdocuments.h"
 #include "ctemplatelibrary.h"
 #include <QDesktopServices>
+#include <QTimer>
 #include <QUrl>
 #include <QApplication>
 #include <QJsonParseError>
@@ -252,6 +253,10 @@ public:
                 handleTemplatesCommand(cmd.substr(14), data.get_Param(), event.m_nSenderId);
                 return true;
             } else
+            if ( cmd.rfind(L"sos:backstage:", 0) == 0 ) {
+                handleBackstageCommand(cmd.substr(14), data.get_Param(), event.m_nSenderId);
+                return true;
+            } else
             if ( cmd.compare(L"open:recent") == 0 ) {
                 QJsonObject objRoot = Utils::parseJsonString(data.get_Param());
                 if ( !objRoot.isEmpty() ) {
@@ -452,6 +457,64 @@ public:
         if ( op == L"folder" ) {
             if ( CTemplateLibrary::ensureUserFolder() )
                 QDesktopServices::openUrl(QUrl::fromLocalFile(CTemplateLibrary::userFolder()));
+        }
+    }
+
+    // Application of an editor: writer, sheet, presentation, pdf or empty
+    auto appForView(int view_id) -> QString
+    {
+        CCefView * view = m_appmanager.GetViewById(view_id);
+        if ( !view || view->GetType() != cvwtEditor )
+            return QString();
+
+        switch ( static_cast<CCefViewEditor *>(view)->GetEditorType() ) {
+        case AscEditorType::etDocument:     return "writer";
+        case AscEditorType::etSpreadsheet:  return "sheet";
+        case AscEditorType::etPresentation: return "presentation";
+        case AscEditorType::etPdf:
+        case AscEditorType::etDocumentMasterForm: return "pdf";
+        default: return QString();
+        }
+    }
+
+    // Secure Office Suite File menu (Backstage) of the editors
+    //  home        the editor's application start page
+    //  templates   the application's templates for File > New
+    //  about       product name, version and copyright for File > About
+    //  exit        closes every window of the suite (unsaved documents ask first)
+    auto handleBackstageCommand(const std::wstring& op, const std::wstring& param, int sender) -> void
+    {
+        const QJsonObject args = Utils::parseJsonString(param);
+        CCefView * view = m_appmanager.GetViewById(sender);
+        static const QStringList known{"writer", "sheet", "presentation", "pdf"};
+        const QString view_app = appForView(sender),
+                      page_app = known.contains(args["app"].toString()) ? args["app"].toString() : QString();
+
+        if ( op == L"home" ) {
+            // the start page of the kind of document in this window
+            const QString app = view_app.isEmpty() ? page_app : view_app;
+            if ( app.isEmpty() )
+                CAscApplicationManagerWrapper::gotoMainWindow();
+            else CAscApplicationManagerWrapper::showStartPage(app);
+        } else
+        if ( op == L"templates" ) {
+            // the templates of the application whose menu asks
+            const QString app = page_app.isEmpty() ? view_app : page_app;
+            const QJsonObject reply{
+                {"app", app},
+                {"templates", app.isEmpty() ? QJsonArray() : CTemplateLibrary::templatesFor(app)},
+                {"userFolder", QDir::toNativeSeparators(CTemplateLibrary::userFolder())},
+            };
+            m_appmanager.sendCommandTo(view, L"sos:backstage:templates", Utils::stringifyJson(reply).toStdWString());
+        } else
+        if ( op == L"about" ) {
+            m_appmanager.sendCommandTo(view, L"sos:backstage:about",
+                                       Utils::stringifyJson(CAscApplicationManagerWrapper::aboutInfo()).toStdWString());
+        } else
+        if ( op == L"exit" ) {
+            QTimer::singleShot(0, &m_appmanager, [] {
+                CAscApplicationManagerWrapper::closeAppWindows();
+            });
         }
     }
 
