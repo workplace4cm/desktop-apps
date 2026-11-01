@@ -179,7 +179,8 @@ function Check-FileTypes([string]$when) {
         $resolved = [SosWin]::Assoc($ext, 1)
         if ($resolved -match "DesktopEditors\.exe`"? --app=$app ") { Pass "Explorer opens $ext with --app=$app ($when)" }
         elseif (Guarded $ext) {
-            Write-Host "NOTE: Windows guards the user's own choice for $ext ($(UserChoiceOf $ext), UCPD driver running), so setup cannot change it; the default associations policy gives $ext to $($Apps[$app]) at the next sign-in ($when)"
+            Write-Host "NOTE: Windows kept Edge ($(UserChoiceOf $ext)) as this user's $ext application, so setup cannot change it for the signed-in session; the default associations policy gives $ext to $($Apps[$app]) at the next sign-in ($when)"
+            Get-ChildItem $Out -Filter *.log | Select-String -SimpleMatch "for $ext" | ForEach-Object { Write-Host "    log: $($_.Filename): $($_.Line)" }
         }
         else {
             Fail "Explorer opens $ext with '$resolved' (UserChoice: $(UserChoiceOf $ext)) ($when)"
@@ -195,12 +196,13 @@ function Check-FileTypes([string]$when) {
 function UserChoiceOf([string]$ext) {
     (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\$ext\UserChoice" -ErrorAction SilentlyContinue).ProgId
 }
-# Windows' UCPD driver keeps programs from changing the user's own choice of
-# PDF application; only the user, or the policy at sign-in, can change it
+# Windows keeps Edge as the signed-in user's PDF application: setup clears the
+# choice (its log says so) and Windows writes Edge's back straight away (the
+# UCPD driver does the same on newer Windows). Only the user, or the default
+# associations policy when the user next signs in, can change it.
 function Guarded([string]$ext) {
     $uc = UserChoiceOf $ext
-    $ucpd = Get-Service UCPD -ErrorAction SilentlyContinue
-    return ($ext -eq '.pdf' -and $uc -and $uc -notlike 'ASC.*' -and $ucpd -and $ucpd.Status -eq 'Running')
+    return ($ext -eq '.pdf' -and $uc -like 'MSEdge*')
 }
 
 # user files that must survive, with hashes (browser caches excluded)
