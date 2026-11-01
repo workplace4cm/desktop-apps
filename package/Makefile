@@ -65,9 +65,15 @@ DESKTOP_FILES += build/main/usr/share/applications/$(DESKTOPEDITORS_EXEC).deskto
 # Secure Office Suite applications, each with its own launcher
 SOS_APPS := writer sheet presentation pdf
 SOS_DESKTOP_FILES := $(foreach a,$(SOS_APPS),build/main/usr/share/applications/$(DESKTOPEDITORS_EXEC)-$(a).desktop)
+SOS_BIN_FILES := $(foreach a,$(SOS_APPS),build/main/usr/bin/$(DESKTOPEDITORS_EXEC)-$(a))
+SOS_ICON_SIZES := 16 24 32 48 64 128 256
+SOS_ICONS := $(foreach a,$(SOS_APPS),$(foreach n,$(SOS_ICON_SIZES),build/main/usr/share/icons/hicolor/$(n)x$(n)/apps/$(DESKTOPEDITORS_EXEC)-$(a).png)) \
+	$(foreach a,$(SOS_APPS),build/main/usr/share/icons/hicolor/scalable/apps/$(DESKTOPEDITORS_EXEC)-$(a).svg)
 LINUX_DEPS += $(BIN_FILES)
 LINUX_DEPS += $(DESKTOP_FILES)
 LINUX_DEPS += $(SOS_DESKTOP_FILES)
+LINUX_DEPS += $(SOS_BIN_FILES)
+LINUX_DEPS += $(SOS_ICONS)
 LINUX_DEPS += $(CHANGELOG_RPM)
 LINUX_DEPS += $(patsubst $(BRANDING_DIR)/common/linux/icons-eo/%.png, \
 	build/main/usr/share/icons/hicolor/%/apps/$(DESKTOPEDITORS_EXEC).png, \
@@ -360,6 +366,21 @@ $(BIN_FILES) $(DESKTOP_FILES) :
 
 $(SOS_DESKTOP_FILES) : build/main/usr/share/applications/$(DESKTOPEDITORS_EXEC)-%.desktop : common/linux/sos-app.desktop.m4
 	mkdir -p $(@D) && m4 -I "$(BRANDING_DIR)/common/linux" $(M4_PARAMS) -D M4_SOS_APP=$* $< > $@
+
+# each application's own command, e.g. secure-office-suite-desktopeditors-writer
+$(SOS_BIN_FILES) : build/main/usr/bin/$(DESKTOPEDITORS_EXEC)-% : common/linux/sos-app.sh.m4
+	mkdir -p $(@D) && m4 -I "$(BRANDING_DIR)/common/linux" $(M4_PARAMS) -D M4_SOS_APP=$* $< > $@
+	chmod 755 $@
+
+# each application's own icon (tools/sos-apps/make_app_icons.py)
+define SOS_ICON_RULE
+build/main/usr/share/icons/hicolor/$(2)x$(2)/apps/$(DESKTOPEDITORS_EXEC)-$(1).png : $(BRANDING_DIR)/common/linux/icons-apps/$(1)/$(2)x$(2).png
+	install -m 644 -D $$< $$@
+endef
+$(foreach a,$(SOS_APPS),$(foreach n,$(SOS_ICON_SIZES),$(eval $(call SOS_ICON_RULE,$(a),$(n)))))
+
+build/main/usr/share/icons/hicolor/scalable/apps/$(DESKTOPEDITORS_EXEC)-%.svg : $(BRANDING_DIR)/common/linux/icons-apps/%/scalable.svg
+	install -m 644 -D $< $@
 
 % : %.m4
 	m4 $(M4_PARAMS)	$< > $@

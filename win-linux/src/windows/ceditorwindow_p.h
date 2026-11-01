@@ -33,6 +33,7 @@
 #include "components/cfullscrwidget.h"
 #include "components/cmenu.h"
 #include "defines.h"
+#include "cappidentity.h"
 #include "Network/FileTransporter/include/FileTransporter.h"
 #include <QDir>
 #include <QUuid>
@@ -195,7 +196,7 @@ public:
             if (iconuser)
                 iconuser->hide();
             if (set_title)
-                window->m_labelTitle->setText(APP_TITLE);
+                window->m_labelTitle->setText(AppIdentity::name());
             changeTheme(GetCurrentTheme().id());
         }
 
@@ -457,9 +458,9 @@ public:
 
         if ( window->isCustomWindowStyle() ) {
             if ( !canExtendTitle() && !fillformMode() ) {
-                window->m_labelTitle->setText(APP_TITLE);
+                window->m_labelTitle->setText(AppIdentity::name());
             } else {
-                window->setWindowTitle(m_panel->data()->title());
+                window->setWindowTitle(AppIdentity::windowTitle(m_panel->data()->title()));
                 window->m_boxTitleBtns->repaint();
             }
         }
@@ -541,7 +542,7 @@ public:
         CCefEventsGate::onDocumentChanged(id, state);
         if ( panel()->data()->hasChanges() != state ) {
             if ( (canExtendTitle() || fillformMode()) && window->isCustomWindowStyle() ) {
-                window->setWindowTitle(m_panel->data()->title());
+                window->setWindowTitle(AppIdentity::windowTitle(m_panel->data()->title()));
                 window->m_boxTitleBtns->repaint();
             }
         }
@@ -830,7 +831,7 @@ public:
         }
 
         if ( is_read_only != panel()->data()->hasFeature(L"readonly\":true") && boxtitlelabel ) {
-            window->setWindowTitle(m_panel->data()->title());
+            window->setWindowTitle(AppIdentity::windowTitle(m_panel->data()->title()));
             window->m_boxTitleBtns->repaint();
         }
     }

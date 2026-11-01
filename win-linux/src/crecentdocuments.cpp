@@ -3,11 +3,14 @@
  */
 
 #include "crecentdocuments.h"
+#include "cappidentity.h"
 
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QSaveFile>
+#include <QLockFile>
+#include <QScopedPointer>
 #include <QJsonDocument>
 #include <QJsonValue>
 #include <QFileSystemWatcher>
@@ -32,25 +35,7 @@ namespace {
     const char * NATIVE_NAME = "recents.xml";
     const int MAX_TOMBSTONES = 1000;
     const int DUPLICATE_EVENT_MS = 3000;
-
-    struct AppFormats {
-        const char * id;
-        QStringList exts;
-    };
-
-    // keep in step with common/loginpage/src/sos/identity.js
-    const QList<AppFormats>& formats()
-    {
-        static const QList<AppFormats> list{
-            {"writer", {"doc", "docx", "docm", "dot", "dotx", "dotm", "odt", "ott", "fodt", "rtf", "txt",
-                        "html", "htm", "mht", "mhtml", "epub", "fb2", "md", "xml", "pages", "hwp", "hwpx"}},
-            {"sheet", {"xls", "xlsx", "xlsm", "xlsb", "xltx", "xltm", "ods", "ots", "fods", "csv", "tsv", "numbers"}},
-            {"presentation", {"ppt", "pptx", "pptm", "pps", "ppsx", "ppsm", "pot", "potx", "potm", "odp", "otp",
-                              "fodp", "key", "odg"}},
-            {"pdf", {"pdf", "djvu", "djv", "xps", "oxps", "docxf", "oform"}},
-        };
-        return list;
-    }
+    const int LOCK_WAIT_MS = 3000;
 
     bool isRemote(const QString& path)
     {
@@ -93,6 +78,58 @@ CRecentDocuments::~CRecentDocuments()
         m_checker->disconnect(this);
         m_checker->wait();
     }
+}
+
+/* several applications share the store */
+
+// The four applications run as separate processes and share one store.
+// Every change happens inside a transaction: take the store's lock file,
+// read what another application may have written since, change, save.
+CRecentDocuments::Transaction::Transaction(CRecentDocuments * store) :
+    m_store(store)
+{
+    if ( m_store->m_depth++ == 0 && !m_store->m_file.isEmpty() ) {
+        QDir().mkpath(m_store->m_dataDir);
+        m_lock = new QLockFile(m_store->m_file + ".lock");
+        m_lock->setStaleLockTime(10000);
+        if ( !m_lock->tryLock(LOCK_WAIT_MS) )
+            qWarning() << "recent documents: store is busy, changing it anyway";
+        m_store->syncFromDisk();
+    }
+}
+
+CRecentDocuments::Transaction::~Transaction()
+{
+    if ( --m_store->m_depth == 0 && m_lock ) {
+        m_lock->unlock();
+        delete m_lock;
+    }
+}
+
+QPair<qint64, qint64> CRecentDocuments::diskStamp() const
+{
+    QFileInfo fi(m_file);
+    fi.refresh();
+    return fi.exists() ? qMakePair(fi.lastModified().toMSecsSinceEpoch(), fi.size()) : qMakePair(qint64(-1), qint64(-1));
+}
+
+bool CRecentDocuments::syncFromDisk()
+{
+    if ( m_file.isEmpty() || diskStamp() == m_stamp )
+        return false;
+
+    // another application saved: take its version (a damaged file is
+    // ignored here; load() deals with it at the next start)
+    const QJsonObject mine = m_root;
+    if ( !loadFile(m_file) ) {
+        m_root = mine;
+        return false;
+    }
+    if ( !m_root.value("lists").isObject() )
+        m_root["lists"] = QJsonObject();
+    m_stamp = diskStamp();
+    m_external = true;
+    return true;
 }
 
 void CRecentDocuments::init(const QString& dataDir, bool watchNative)
@@ -140,22 +177,12 @@ void CRecentDocuments::scheduleNativeRead()
 
 QStringList CRecentDocuments::apps()
 {
-    QStringList out;
-    for (const auto& a : formats())
-        out << a.id;
-    return out;
+    return AppIdentity::ids();
 }
 
 QString CRecentDocuments::appForPath(const QString& path)
 {
-    const QString ext = QFileInfo(path).suffix().toLower();
-    if ( !ext.isEmpty() ) {
-        for (const auto& a : formats()) {
-            if ( a.exts.contains(ext) )
-                return a.id;
-        }
-    }
-    return QString();
+    return AppIdentity::appForPath(path);
 }
 
 QString CRecentDocuments::key(const QString& path)
@@ -252,6 +279,8 @@ void CRecentDocuments::load()
     if ( !m_root.value("lists").isObject() )
         m_root["lists"] = QJsonObject();
 
+    m_stamp = diskStamp();
+
     // future schema changes migrate here, keyed on m_root["schema"]
     if ( m_root.value("schema").toInt() < schemaVersion )
         m_root["schema"] = schemaVersion;
@@ -290,7 +319,9 @@ bool CRecentDocuments::save()
         return false;
     }
 
-    return f.commit();
+    const bool ok = f.commit();
+    m_stamp = diskStamp();
+    return ok;
 }
 
 /* lists */
@@ -373,6 +404,7 @@ void CRecentDocuments::notify()
 void CRecentDocuments::registerDocument(const QString& rawPath, Event ev, const QString& origin,
                                         const QString& templateName, const QDateTime& when)
 {
+    Transaction txn(this);
     if ( rawPath.isEmpty() || isRemote(rawPath) )
         return;
 
@@ -427,6 +459,7 @@ void CRecentDocuments::registerDocument(const QString& rawPath, Event ev, const 
 
 bool CRecentDocuments::setPinned(const QString& path, bool pinned)
 {
+    Transaction txn(this);
     const QString app = appForPath(path), k = key(path);
     QJsonArray l = list(app);
     const int i = indexOf(l, k);
@@ -458,6 +491,7 @@ bool CRecentDocuments::setPinned(const QString& path, bool pinned)
 
 bool CRecentDocuments::remove(const QString& path)
 {
+    Transaction txn(this);
     const QString app = appForPath(path), k = key(path);
     QJsonArray l = list(app);
     const int i = indexOf(l, k);
@@ -475,6 +509,7 @@ bool CRecentDocuments::remove(const QString& path)
 
 int CRecentDocuments::clear(const QString& app, bool includePinned)
 {
+    Transaction txn(this);
     const QStringList targets = app == "suite" ? apps() : (apps().contains(app) ? QStringList{app} : QStringList());
     const QDateTime t = QDateTime::currentDateTimeUtc();
 
@@ -506,6 +541,7 @@ int CRecentDocuments::clear(const QString& app, bool includePinned)
 
 bool CRecentDocuments::relocate(const QString& from, const QString& rawTo)
 {
+    Transaction txn(this);
     if ( rawTo.isEmpty() || isRemote(rawTo) ) return false;
 
     const QString to = displayPath(rawTo);
@@ -636,6 +672,7 @@ void CRecentDocuments::checkAvailability()
 
 void CRecentDocuments::applyChecks(const QHash<QString, QJsonObject>& results)
 {
+    Transaction txn(this);
     bool statusChanged = false, metaChanged = false;
 
     for (auto it = results.cbegin(); it != results.cend(); ++it) {
@@ -705,6 +742,13 @@ QString CRecentDocuments::snapshotJson() const
 void CRecentDocuments::reconcileNative()
 {
     if ( m_dataDir.isEmpty() ) return;
+
+    Transaction txn(this);
+    // another application changed the store: show its lists here too
+    if ( m_external ) {
+        m_external = false;
+        notify();
+    }
 
     QFile f(m_dataDir + "/" + NATIVE_NAME);
     if ( !f.open(QIODevice::ReadOnly) ) {

@@ -206,6 +206,45 @@ begin
   until Length(Text)=0;
 end;
 
+// EuroOffice Writer, Sheet, Presentation and PDF (desktop-apps
+// win-linux/src/cappidentity.cpp gives the running applications the same
+// names and taskbar identities)
+function SosIsApp(app: string): Boolean;
+begin
+  Result := (app = 'writer') or (app = 'sheet') or (app = 'presentation') or (app = 'pdf');
+end;
+
+function SosAppKey(app: string): string;
+begin
+  if SosIsApp(app) then Result := Uppercase(Copy(app, 1, 1)) + Copy(app, 2, Length(app) - 1)
+  else Result := '';
+end;
+
+function SosAppName(app: string): string;
+begin
+  if app = 'pdf' then Result := 'EuroOffice PDF'
+  else if SosIsApp(app) then Result := 'EuroOffice ' + SosAppKey(app)
+  else Result := '{#sAppName}';
+end;
+
+function SosAppUserModelId(app: string): string;
+begin
+  if SosIsApp(app) then Result := '{#APP_ID_PREFIX}.' + SosAppKey(app)
+  else Result := '{#APP_USER_MODEL_ID}';
+end;
+
+function SosAppIcon(app: string): string;
+begin
+  if SosIsApp(app) then Result := ExpandConstant('{app}\icons\') + app + '.ico'
+  else Result := ExpandConstant('{app}\{#iconsExe},33');
+end;
+
+function SosOpenCommand(app: string): string;
+begin
+  if SosIsApp(app) then Result := ExpandConstant('"{app}\{#iconsExe}"') + ' --app=' + app + ' "%1"'
+  else Result := ExpandConstant('"{app}\{#iconsExe}"') + ' "%1"';
+end;
+
 procedure initExtensions;
 var
   prefix: string;
@@ -251,38 +290,41 @@ begin
 
   SetArrayLength(ExtensionRegistryInfo,  GetArrayLength(AudioExts));
 
+  // ProgID:description:icon index:application (EuroOffice Writer, Sheet,
+  // Presentation or PDF opens it; suite: none of them)
+
   prefix := '{#ASCC_REG_PREFIX}' + '.';
 
-  ExtensionRegistryInfo[0]  := prefix + 'Document.1:'   + ExpandConstant('{cm:extDOC}')             + ':' + '11';
-  ExtensionRegistryInfo[1]  := prefix + 'Document.12:'  + ExpandConstant('{cm:extDOCX}')            + ':' + '7';
-  ExtensionRegistryInfo[2]  := prefix + 'Sheet.1:'      + ExpandConstant('{cm:extXLS}')             + ':' + '22';
-  ExtensionRegistryInfo[3]  := prefix + 'Sheet.12:'     + ExpandConstant('{cm:extXLSX}')            + ':' + '10';
-  ExtensionRegistryInfo[4]  := prefix + 'Show.1:'       + ExpandConstant('{cm:extPPT}')             + ':' + '1';
-  ExtensionRegistryInfo[5]  := prefix + 'Show.12:'      + ExpandConstant('{cm:extPPTX}')            + ':' + '9';
-  ExtensionRegistryInfo[6]  := prefix + 'SlideShow.1:'  + ExpandConstant('{cm:extPPS}')             + ':' + '2';
-  ExtensionRegistryInfo[7]  := prefix + 'SlideShow.12:' + ExpandConstant('{cm:extPPSX}')            + ':' + '8';
-  ExtensionRegistryInfo[8]  := prefix + 'Document.2:'   + ExpandConstant('{cm:extODT}')             + ':' + '18';
-  ExtensionRegistryInfo[9]  := prefix + 'Sheet.2:'      + ExpandConstant('{cm:extODS}')             + ':' + '23';
-  ExtensionRegistryInfo[10] := prefix + 'Show.2:'       + ExpandConstant('{cm:extODP}')             + ':' + '3';
-  ExtensionRegistryInfo[11] := prefix + 'Rtf:'          + ExpandConstant('{cm:extRTF}')             + ':' + '19';
-  //ExtensionRegistryInfo[12] := prefix + 'Txt:'                                                      + ':' + '14';
-  ExtensionRegistryInfo[12] := prefix + 'Csv:'          + ExpandConstant('{cm:extCSV}')             + ':' + '24';
-  ExtensionRegistryInfo[13] := prefix + 'Pdf:'          + ExpandConstant('{cm:extPDF}')             + ':' + '5';
-  ExtensionRegistryInfo[14] := prefix + 'DjVu:'         + ExpandConstant('{cm:extDJVU}')            + ':' + '4';
-  ExtensionRegistryInfo[15] := prefix + 'Xps:'          + ExpandConstant('{cm:extXPS}')             + ':' + '6';
-  ExtensionRegistryInfo[16] := prefix + 'Pot:'          + ExpandConstant('{cm:extPOT}')             + ':' + '26';
-  ExtensionRegistryInfo[17] := prefix + 'Pptm:'         + ExpandConstant('{cm:extPPTM}')            + ':' + '27';
-  ExtensionRegistryInfo[18] := prefix + 'Epub:'         + ExpandConstant('{cm:extEPUB}')            + ':' + '28';
-  ExtensionRegistryInfo[19] := prefix + 'Fb2:'          + ExpandConstant('{cm:extFB2}')             + ':' + '29';
-  ExtensionRegistryInfo[20] := prefix + 'Dotx:'         + ExpandConstant('{cm:extDOTX}')            + ':' + '30';
-  ExtensionRegistryInfo[21] := prefix + 'Oxps:'         + ExpandConstant('{cm:extOXPS}')            + ':' + '31';
-  ExtensionRegistryInfo[22] := prefix + 'Xlsb:'         + ExpandConstant('{cm:extXLSB}')            + ':' + '32';
-  ExtensionRegistryInfo[23] := prefix + 'Fods:'         + ExpandConstant('{cm:extFODS}')            + ':' + '34';
-  ExtensionRegistryInfo[24] := prefix + 'Fodt:'         + ExpandConstant('{cm:extFODT}')            + ':' + '35';
-  ExtensionRegistryInfo[25] := prefix + 'Vsdx:'         + ExpandConstant('{cm:extVSDX}')            + ':' + '36';
-  ExtensionRegistryInfo[26] := prefix + 'Xlsm:'         + ExpandConstant('{cm:extXLSM}')            + ':' + '37';
+  ExtensionRegistryInfo[0]  := prefix + 'Document.1:'   + ExpandConstant('{cm:extDOC}')             + ':' + '11' + ':' + 'writer';
+  ExtensionRegistryInfo[1]  := prefix + 'Document.12:'  + ExpandConstant('{cm:extDOCX}')            + ':' + '7' + ':' + 'writer';
+  ExtensionRegistryInfo[2]  := prefix + 'Sheet.1:'      + ExpandConstant('{cm:extXLS}')             + ':' + '22' + ':' + 'sheet';
+  ExtensionRegistryInfo[3]  := prefix + 'Sheet.12:'     + ExpandConstant('{cm:extXLSX}')            + ':' + '10' + ':' + 'sheet';
+  ExtensionRegistryInfo[4]  := prefix + 'Show.1:'       + ExpandConstant('{cm:extPPT}')             + ':' + '1' + ':' + 'presentation';
+  ExtensionRegistryInfo[5]  := prefix + 'Show.12:'      + ExpandConstant('{cm:extPPTX}')            + ':' + '9' + ':' + 'presentation';
+  ExtensionRegistryInfo[6]  := prefix + 'SlideShow.1:'  + ExpandConstant('{cm:extPPS}')             + ':' + '2' + ':' + 'presentation';
+  ExtensionRegistryInfo[7]  := prefix + 'SlideShow.12:' + ExpandConstant('{cm:extPPSX}')            + ':' + '8' + ':' + 'presentation';
+  ExtensionRegistryInfo[8]  := prefix + 'Document.2:'   + ExpandConstant('{cm:extODT}')             + ':' + '18' + ':' + 'writer';
+  ExtensionRegistryInfo[9]  := prefix + 'Sheet.2:'      + ExpandConstant('{cm:extODS}')             + ':' + '23' + ':' + 'sheet';
+  ExtensionRegistryInfo[10] := prefix + 'Show.2:'       + ExpandConstant('{cm:extODP}')             + ':' + '3' + ':' + 'presentation';
+  ExtensionRegistryInfo[11] := prefix + 'Rtf:'          + ExpandConstant('{cm:extRTF}')             + ':' + '19' + ':' + 'writer';
+  //ExtensionRegistryInfo[12] := prefix + 'Txt:'                                                      + ':' + '14' + ':' + 'writer';
+  ExtensionRegistryInfo[12] := prefix + 'Csv:'          + ExpandConstant('{cm:extCSV}')             + ':' + '24' + ':' + 'sheet';
+  ExtensionRegistryInfo[13] := prefix + 'Pdf:'          + ExpandConstant('{cm:extPDF}')             + ':' + '5' + ':' + 'pdf';
+  ExtensionRegistryInfo[14] := prefix + 'DjVu:'         + ExpandConstant('{cm:extDJVU}')            + ':' + '4' + ':' + 'pdf';
+  ExtensionRegistryInfo[15] := prefix + 'Xps:'          + ExpandConstant('{cm:extXPS}')             + ':' + '6' + ':' + 'pdf';
+  ExtensionRegistryInfo[16] := prefix + 'Pot:'          + ExpandConstant('{cm:extPOT}')             + ':' + '26' + ':' + 'presentation';
+  ExtensionRegistryInfo[17] := prefix + 'Pptm:'         + ExpandConstant('{cm:extPPTM}')            + ':' + '27' + ':' + 'presentation';
+  ExtensionRegistryInfo[18] := prefix + 'Epub:'         + ExpandConstant('{cm:extEPUB}')            + ':' + '28' + ':' + 'writer';
+  ExtensionRegistryInfo[19] := prefix + 'Fb2:'          + ExpandConstant('{cm:extFB2}')             + ':' + '29' + ':' + 'writer';
+  ExtensionRegistryInfo[20] := prefix + 'Dotx:'         + ExpandConstant('{cm:extDOTX}')            + ':' + '30' + ':' + 'writer';
+  ExtensionRegistryInfo[21] := prefix + 'Oxps:'         + ExpandConstant('{cm:extOXPS}')            + ':' + '31' + ':' + 'pdf';
+  ExtensionRegistryInfo[22] := prefix + 'Xlsb:'         + ExpandConstant('{cm:extXLSB}')            + ':' + '32' + ':' + 'sheet';
+  ExtensionRegistryInfo[23] := prefix + 'Fods:'         + ExpandConstant('{cm:extFODS}')            + ':' + '34' + ':' + 'sheet';
+  ExtensionRegistryInfo[24] := prefix + 'Fodt:'         + ExpandConstant('{cm:extFODT}')            + ':' + '35' + ':' + 'writer';
+  ExtensionRegistryInfo[25] := prefix + 'Vsdx:'         + ExpandConstant('{cm:extVSDX}')            + ':' + '36' + ':' + 'suite';
+  ExtensionRegistryInfo[26] := prefix + 'Xlsm:'         + ExpandConstant('{cm:extXLSM}')            + ':' + '37' + ':' + 'sheet';
 #ifdef _EuroOffice
-  ExtensionRegistryInfo[27] := prefix + 'Docxf:'        + ExpandConstant('{cm:extDOCXF}')           + ':' + '13';
+  ExtensionRegistryInfo[27] := prefix + 'Docxf:'        + ExpandConstant('{cm:extDOCXF}')           + ':' + '13' + ':' + 'pdf';
 #endif
 end;
 
@@ -419,21 +461,34 @@ end;
 
 //----------
 
+// Default apps: EuroOffice Writer, Sheet, Presentation and PDF are listed
+// as four applications, each with the file types it opens
 procedure AddToDefaultPrograms;
 var
-  i: integer;
+  i, a: integer;
   argsArray: TArrayOfString;
+  apps: TArrayOfString;
+  capPath: string;
 begin
-    RegWriteStringValue(HKEY_LOCAL_MACHINE, '{#APP_REG_PATH}\Capabilities', 'ApplicationDescription', ExpandConstant('{cm:defprogAppDescription}'));
-    RegWriteStringValue(HKEY_LOCAL_MACHINE, '{#APP_REG_PATH}\Capabilities', 'ApplicationIcon', ExpandConstant('"{app}\{#NAME_EXE_OUT},0"'));
-    RegWriteStringValue(HKEY_LOCAL_MACHINE, '{#APP_REG_PATH}\Capabilities', 'ApplicationName', '{#sAppName}');
+    apps := ['writer', 'sheet', 'presentation', 'pdf'];
+    for a := 0 to GetArrayLength(apps) - 1 do begin
+      capPath := '{#APP_REG_PATH}\Apps\' + SosAppKey(apps[a]) + '\Capabilities';
+      RegWriteStringValue(HKEY_LOCAL_MACHINE, capPath, 'ApplicationDescription', SosAppName(apps[a]));
+      RegWriteStringValue(HKEY_LOCAL_MACHINE, capPath, 'ApplicationIcon', SosAppIcon(apps[a]));
+      RegWriteStringValue(HKEY_LOCAL_MACHINE, capPath, 'ApplicationName', SosAppName(apps[a]));
 
-    for i := 0 to GetArrayLength(AudioExts) - 1 do begin
-      Explode(argsArray, ExtensionRegistryInfo[i],':');
-      RegWriteStringValue(HKEY_LOCAL_MACHINE, '{#APP_REG_PATH}\Capabilities\FileAssociations', '.' + LowerCase(AudioExts[i]), argsArray[0]);
+      for i := 0 to GetArrayLength(AudioExts) - 1 do begin
+        Explode(argsArray, ExtensionRegistryInfo[i],':');
+        if argsArray[3] = apps[a] then
+          RegWriteStringValue(HKEY_LOCAL_MACHINE, capPath + '\FileAssociations', '.' + LowerCase(AudioExts[i]), argsArray[0]);
+      end;
+
+      RegWriteStringValue(HKEY_LOCAL_MACHINE, 'Software\RegisteredApplications', SosAppName(apps[a]), capPath);
     end;
 
-    RegWriteStringValue(HKEY_LOCAL_MACHINE, 'Software\RegisteredApplications', '{#ASCC_REG_REGISTERED_APP_NAME}', '{#APP_REG_PATH}\Capabilities');
+    // the suite itself no longer takes file types
+    RegDeleteKeyIncludingSubkeys(HKEY_LOCAL_MACHINE, '{#APP_REG_PATH}\Capabilities');
+    RegDeleteValue(HKEY_LOCAL_MACHINE, 'Software\RegisteredApplications', '{#ASCC_REG_REGISTERED_APP_NAME}');
 end;
 
 function TryGetValue(const KeyValueList: TArrayOfValues; const Key: string; var Value: string): Boolean;
@@ -534,12 +589,15 @@ begin
         if Length(argsArray[1]) <> 0 then
           RegWriteStringValue(HKEY_LOCAL_MACHINE, 'Software\Classes\' + argsArray[0], '', argsArray[1]);
 
-        RegWriteStringValue(HKEY_LOCAL_MACHINE, 'Software\Classes\' + argsArray[0], 'AppUserModelID', ExpandConstant('{#APP_USER_MODEL_ID}'));
+        // the file type opens in its own application (EuroOffice Writer,
+        // Sheet, Presentation or PDF), which also owns its taskbar button
+        RegWriteStringValue(HKEY_LOCAL_MACHINE, 'Software\Classes\' + argsArray[0], 'AppUserModelID', SosAppUserModelId(argsArray[3]));
         RegWriteStringValue(HKEY_LOCAL_MACHINE, 'Software\Classes\' + argsArray[0] + '\DefaultIcon', '', ExpandConstant('{app}\{#iconsExe},' + argsArray[2]));
-        RegWriteStringValue(HKEY_LOCAL_MACHINE, 'Software\Classes\' + argsArray[0] + '\shell\open\command', '', ExpandConstant('"{app}\{#iconsExe}" "%1"'));
-        RegWriteStringValue(HKEY_LOCAL_MACHINE, 'Software\Classes\' + argsArray[0] + '\Application', 'ApplicationName', '{#sAppName}');
+        RegWriteStringValue(HKEY_LOCAL_MACHINE, 'Software\Classes\' + argsArray[0] + '\shell\open\command', '', SosOpenCommand(argsArray[3]));
+        RegWriteStringValue(HKEY_LOCAL_MACHINE, 'Software\Classes\' + argsArray[0] + '\shell\open', 'FriendlyAppName', SosAppName(argsArray[3]));
+        RegWriteStringValue(HKEY_LOCAL_MACHINE, 'Software\Classes\' + argsArray[0] + '\Application', 'ApplicationName', SosAppName(argsArray[3]));
         if (version.Major = 10) and (version.Minor = 0) and (version.Build < 22000) then begin
-          RegWriteStringValue(HKEY_LOCAL_MACHINE, 'Software\Classes\' + argsArray[0] + '\Application', 'ApplicationIcon', ExpandConstant('{app}\{#iconsExe},33'));
+          RegWriteStringValue(HKEY_LOCAL_MACHINE, 'Software\Classes\' + argsArray[0] + '\Application', 'ApplicationIcon', SosAppIcon(argsArray[3]));
         end;
       //end;
 
@@ -669,6 +727,11 @@ begin
 
   RegDeleteKeyIncludingSubkeys(HKEY_LOCAL_MACHINE, '{#APP_REG_PATH}\Capabilities');
   RegDeleteValue(HKEY_LOCAL_MACHINE, 'Software\RegisteredApplications', '{#ASCC_REG_REGISTERED_APP_NAME}');
+  RegDeleteKeyIncludingSubkeys(HKEY_LOCAL_MACHINE, '{#APP_REG_PATH}\Apps');
+  RegDeleteValue(HKEY_LOCAL_MACHINE, 'Software\RegisteredApplications', 'EuroOffice Writer');
+  RegDeleteValue(HKEY_LOCAL_MACHINE, 'Software\RegisteredApplications', 'EuroOffice Sheet');
+  RegDeleteValue(HKEY_LOCAL_MACHINE, 'Software\RegisteredApplications', 'EuroOffice Presentation');
+  RegDeleteValue(HKEY_LOCAL_MACHINE, 'Software\RegisteredApplications', 'EuroOffice PDF');
   RegDeleteValue(HKEY_CLASSES_ROOT, 'Local Settings\Software\Microsoft\Windows\Shell\MuiCache', ExpandConstant('{app}\{#iconsExe}'));
 
   RegDeleteKeyIncludingSubkeys(HKEY_LOCAL_MACHINE, ExpandConstant('Software\Classes\.docx\{#ASCC_REG_PREFIX}.Document.12'));
@@ -1063,7 +1126,8 @@ var
   hWnd: Longint;
 begin
   if not CheckCommandlineParam('/update') then
-    Result := '{#APP_MUTEX_NAME}'
+    // the suite page and each of the four applications (cappidentity.cpp)
+    Result := '{#APP_MUTEX_NAME},{#APP_MUTEX_NAME}.writer,{#APP_MUTEX_NAME}.sheet,{#APP_MUTEX_NAME}.presentation,{#APP_MUTEX_NAME}.pdf'
   else
     Result := 'UPDATE';
 end;

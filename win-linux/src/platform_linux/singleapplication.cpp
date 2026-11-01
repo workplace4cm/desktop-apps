@@ -28,6 +28,7 @@
 #include "csocket.h"
 #include "utils.h"
 #include "defines.h"
+#include "cappidentity.h"
 #include <QSessionManager>
 
 
@@ -50,7 +51,8 @@ static GVariant* callMethod(const gchar *obj_path, const gchar *interface, const
 static std::string registerClient()
 {
     std::string result;
-    GVariant *args = g_variant_new("(ss)", DESKTOP_FILE_NAME, "");
+    const QByteArray app_id = AppIdentity::desktopFileName(QString::fromUtf8(DESKTOP_FILE_NAME)).toUtf8();
+    GVariant *args = g_variant_new("(ss)", app_id.constData(), "");
     g_variant_ref_sink(args);
     if (GVariant *ret = callMethod(GNOME_SESSION_PATH, GNOME_SESSION_ITF, "RegisterClient", args)) {
         gchar *client_id = nullptr;

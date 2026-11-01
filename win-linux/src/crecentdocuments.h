@@ -37,10 +37,12 @@
 #include <QHash>
 #include <QMap>
 #include <QStringList>
+#include <QPair>
 
 class QFileSystemWatcher;
 class QTimer;
 class QThread;
+class QLockFile;
 
 class CRecentDocuments : public QObject
 {
@@ -109,6 +111,20 @@ private:
         qint64 lastEvent = 0;
     };
 
+    // a change made under the store's lock, after reading what another
+    // application saved (the four applications share the store)
+    class Transaction {
+    public:
+        explicit Transaction(CRecentDocuments * store);
+        ~Transaction();
+    private:
+        CRecentDocuments * m_store;
+        QLockFile * m_lock = nullptr;
+    };
+    friend class Transaction;
+    QPair<qint64, qint64> diskStamp() const;
+    bool syncFromDisk();
+
     void load();
     bool loadFile(const QString& file);
     bool save();
@@ -138,6 +154,9 @@ private:
     QTimer * m_nativeTimer = nullptr;
     QThread * m_checker = nullptr;
     bool m_recheck = false;
+    int  m_depth = 0;
+    bool m_external = false;
+    QPair<qint64, qint64> m_stamp{-1, -1};
 };
 
 #endif // CRECENTDOCUMENTS_H

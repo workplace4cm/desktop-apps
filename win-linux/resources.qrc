@@ -94,6 +94,15 @@
         <file>res/icons/splash-eo.svg</file>
         <file alias="tab-icon-light.svg">res/icons/app-icon-eo.svg</file>
         <file alias="tab-icon-dark.svg">res/icons/app-icon-eo-dark.svg</file>
+        <!-- EuroOffice Writer, Sheet, Presentation and PDF -->
+        <file alias="sos/apps/writer.svg">res/icons/apps/writer.svg</file>
+        <file alias="sos/apps/sheet.svg">res/icons/apps/sheet.svg</file>
+        <file alias="sos/apps/presentation.svg">res/icons/apps/presentation.svg</file>
+        <file alias="sos/apps/pdf.svg">res/icons/apps/pdf.svg</file>
+        <file alias="sos/apps/writer.ico">res/icons/apps/writer.ico</file>
+        <file alias="sos/apps/sheet.ico">res/icons/apps/sheet.ico</file>
+        <file alias="sos/apps/presentation.ico">res/icons/apps/presentation.ico</file>
+        <file alias="sos/apps/pdf.ico">res/icons/apps/pdf.ico</file>
         <file alias="logo-light-eo.svg">res/icons/logo-light-eo.svg</file>
         <file alias="logo-light-eo.png">res/icons/logo-light-eo.png</file>
         <file alias="logo-light-eo_1.25x.png">res/icons/logo-light-eo@1.25x.png</file>

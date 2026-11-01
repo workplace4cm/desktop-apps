@@ -19,6 +19,8 @@
 #define APP_REG_PATH                    str("Software\" + APP_PATH)
 #define APP_REG_UNINST_KEY              str(sCompanyName + " " + sProductName)
 #define APP_USER_MODEL_ID               "SecureOfficeSuite.Documents.1"
+; EuroOffice Writer, Sheet, Presentation and PDF: <prefix>.Writer and so on
+#define APP_ID_PREFIX                   "SecureOfficeSuite"
 #define APP_MUTEX_NAME                  "SecureOfficeSuite"
 #define APPWND_CLASS_NAME               "DocEditorsWindowClass"
 

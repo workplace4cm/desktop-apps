@@ -26,6 +26,7 @@
 #ifdef __linux__
 # include "platform_linux/gtkutils.h"
 #endif
+#include "cappidentity.h"
 #include "utils.h"
 #include "defines.h"
 #include <QSettings>
@@ -872,6 +873,13 @@ QByteArray Utils::readStylesheets(const QString& path)
         file.close();
     }
 
+    // the Home button of EuroOffice Writer, Sheet... shows its own icon
+    const QString app_icon = AppIdentity::iconResource();
+    if ( !app_icon.isEmpty() ) {
+        _css.replace(":/tab-icon-light.svg", app_icon.toUtf8());
+        _css.replace(":/tab-icon-dark.svg", app_icon.toUtf8());
+    }
+
     return _css;
 }
 
@@ -1022,7 +1030,8 @@ void Utils::setAppUserModelId()
         HRESULT (WINAPI *SetAppUserModelID)(PCWSTR AppID);
         *(FARPROC*)&SetAppUserModelID = GetProcAddress(lib, "SetCurrentProcessExplicitAppUserModelID");
         if (SetAppUserModelID)
-            SetAppUserModelID(TEXT(APP_USER_MODEL_ID));
+            // each application groups its windows under its own taskbar icon
+            SetAppUserModelID(AppIdentity::userModelId(QString::fromUtf8(APP_USER_MODEL_ID)).toStdWString().c_str());
         FreeLibrary(lib);
     }
 }
@@ -1043,7 +1052,8 @@ void Utils::setInstAppPort(int port)
 int Utils::getInstAppPort()
 {
     GET_REGISTRY_USER(reg_user);
-    return reg_user.value("instAppPort", INSTANCE_APP_PORT).toInt();
+    // the applications listen next to the suite's port, one port each
+    return AppIdentity::instancePort(reg_user.value("instAppPort", INSTANCE_APP_PORT).toInt());
 }
 #endif
 
@@ -1317,7 +1327,7 @@ namespace WindowHelper {
         CTabPanel * _panel = qobject_cast<CTabPanel *>(panelwidget);
         CFullScrWidget * _parent = new CFullScrWidget;
         _parent->setWindowIcon(Utils::appIcon());
-        _parent->setWindowTitle(_panel->data()->title());
+        _parent->setWindowTitle(AppIdentity::windowTitle(_panel->data()->title()));
 
         QRect _scr_geometry;
 #if QT_VERSION < QT_VERSION_CHECK(5, 11, 0)

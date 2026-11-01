@@ -360,6 +360,31 @@ private slots:
                     .arg(a.toHtmlEscaped(), QDateTime::currentDateTime().toString("dd.MM.yyyy HH:mm")));
         QTRY_VERIFY_WITH_TIMEOUT(r.contains(a), 5000);
     }
+
+    // Writer and Sheet run as separate processes on one store: neither
+    // overwrites what the other added
+    void twoApplicationsShareTheStore()
+    {
+        CRecentDocuments writer, sheet;
+        writer.init(m_data, false);
+        sheet.init(m_data, false);
+
+        writer.registerDocument(doc("w1.docx"), Ev::Opened);
+        sheet.registerDocument(doc("s1.xlsx"), Ev::Opened);
+        writer.registerDocument(doc("w2.docx"), Ev::Opened);
+        sheet.setPinned(doc("s1.xlsx"), true);
+
+        CRecentDocuments reread;
+        reread.init(m_data, false);
+        QCOMPARE(listOf(reread, "writer").size(), 2);
+        QCOMPARE(listOf(reread, "sheet").size(), 1);
+        QVERIFY(listOf(reread, "sheet").at(0).toObject().value("pinned").toBool());
+
+        // the Writer process sees Sheet's change when it next touches the store
+        writer.remove(doc("w1.docx"));
+        QCOMPARE(listOf(writer, "sheet").size(), 1);
+        QCOMPARE(listOf(writer, "writer").size(), 1);
+    }
 };
 
 QTEST_GUILESS_MAIN(TestRecentDocuments)

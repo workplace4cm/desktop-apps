@@ -12,6 +12,8 @@ find_package(Qt6 REQUIRED COMPONENTS Core Test)
 add_executable(tst_recentdocuments
     tst_recentdocuments.cpp
     ../../src/crecentdocuments.h
-    ../../src/crecentdocuments.cpp)
+    ../../src/crecentdocuments.cpp
+    ../../src/cappidentity.h
+    ../../src/cappidentity.cpp)
 target_include_directories(tst_recentdocuments PRIVATE ../../src)
 target_link_libraries(tst_recentdocuments PRIVATE Qt6::Core Qt6::Test)

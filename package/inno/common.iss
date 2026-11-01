@@ -216,6 +216,8 @@ Source: "{#BRANDING_DIR}\..\common\license\3dparty\3DPARTYLICENSE"; DestDir: {ap
 Type: filesandordirs; Name: {app}\editors\sdkjs-plugins
 Type: files; Name: "{commondesktop}\{#sOldAppIconName}.lnk"; Tasks: desktopicon;
 Type: files; Name: "{group}\{#sOldAppIconName}.lnk";
+; the desktop now has the four applications instead of the suite page
+Type: files; Name: "{commondesktop}\{#sAppIconName}.lnk";
 
 [Tasks]
 Name: desktopicon; Description: {cm:CreateDesktopIcon,{#sAppName}}; GroupDescription: {cm:AdditionalIcons};
@@ -224,19 +226,24 @@ Name: desktopicon; Description: {cm:CreateDesktopIcon,{#sAppName}}; GroupDescrip
 
 [Icons]
 ;Name: {commondesktop}\{#sAppName}; FileName: {app}\{#NAME_EXE_OUT}; WorkingDir: {app}; Tasks: desktopicon;
-Name: {commondesktop}\{#sAppIconName}; FileName: {app}\{#iconsExe}; WorkingDir: {app}; Tasks: desktopicon; IconFilename: {app}\app.ico; AppUserModelID: {#APP_USER_MODEL_ID};
 Name: {group}\{#sAppIconName};         Filename: {app}\{#iconsExe}; WorkingDir: {app}; IconFilename: {app}\app.ico; AppUserModelID: {#APP_USER_MODEL_ID};
-; Secure Office Suite applications: each opens on its own start page
-Name: "{group}\EuroOffice Writer";       Filename: "{app}\{#iconsExe}"; Parameters: "--app=writer";       WorkingDir: {app}; IconFilename: "{app}\{#iconsExe}"; IconIndex: 14;
-Name: "{group}\EuroOffice Sheet";        Filename: "{app}\{#iconsExe}"; Parameters: "--app=sheet";        WorkingDir: {app}; IconFilename: "{app}\{#iconsExe}"; IconIndex: 15;
-Name: "{group}\EuroOffice Presentation"; Filename: "{app}\{#iconsExe}"; Parameters: "--app=presentation"; WorkingDir: {app}; IconFilename: "{app}\{#iconsExe}"; IconIndex: 16;
-Name: "{group}\EuroOffice PDF";          Filename: "{app}\{#iconsExe}"; Parameters: "--app=pdf";          WorkingDir: {app}; IconFilename: "{app}\{#iconsExe}"; IconIndex: 5;
+; EuroOffice Writer, Sheet, Presentation and PDF: four applications, each with
+; its own shortcut, icon and taskbar identity (AppUserModelID, the same the
+; running application sets: cappidentity.cpp), opening on its own start page
+Name: "{group}\EuroOffice Writer";       Filename: "{app}\{#iconsExe}"; Parameters: "--app=writer";       WorkingDir: {app}; IconFilename: "{app}\icons\writer.ico";       AppUserModelID: "{#APP_ID_PREFIX}.Writer";
+Name: "{group}\EuroOffice Sheet";        Filename: "{app}\{#iconsExe}"; Parameters: "--app=sheet";        WorkingDir: {app}; IconFilename: "{app}\icons\sheet.ico";        AppUserModelID: "{#APP_ID_PREFIX}.Sheet";
+Name: "{group}\EuroOffice Presentation"; Filename: "{app}\{#iconsExe}"; Parameters: "--app=presentation"; WorkingDir: {app}; IconFilename: "{app}\icons\presentation.ico"; AppUserModelID: "{#APP_ID_PREFIX}.Presentation";
+Name: "{group}\EuroOffice PDF";          Filename: "{app}\{#iconsExe}"; Parameters: "--app=pdf";          WorkingDir: {app}; IconFilename: "{app}\icons\pdf.ico";          AppUserModelID: "{#APP_ID_PREFIX}.Pdf";
+Name: "{commondesktop}\EuroOffice Writer";       Filename: "{app}\{#iconsExe}"; Parameters: "--app=writer";       WorkingDir: {app}; IconFilename: "{app}\icons\writer.ico";       AppUserModelID: "{#APP_ID_PREFIX}.Writer";       Tasks: desktopicon;
+Name: "{commondesktop}\EuroOffice Sheet";        Filename: "{app}\{#iconsExe}"; Parameters: "--app=sheet";        WorkingDir: {app}; IconFilename: "{app}\icons\sheet.ico";        AppUserModelID: "{#APP_ID_PREFIX}.Sheet";        Tasks: desktopicon;
+Name: "{commondesktop}\EuroOffice Presentation"; Filename: "{app}\{#iconsExe}"; Parameters: "--app=presentation"; WorkingDir: {app}; IconFilename: "{app}\icons\presentation.ico"; AppUserModelID: "{#APP_ID_PREFIX}.Presentation"; Tasks: desktopicon;
+Name: "{commondesktop}\EuroOffice PDF";          Filename: "{app}\{#iconsExe}"; Parameters: "--app=pdf";          WorkingDir: {app}; IconFilename: "{app}\icons\pdf.ico";          AppUserModelID: "{#APP_ID_PREFIX}.Pdf";          Tasks: desktopicon;
 Name: {group}\{cm:Uninstall}; IconFilename: {app}\{#iconsExe}; IconIndex: 25; Filename: {uninstallexe}; WorkingDir: {app};
-Name: "{group}\{cm:jumpDOCX}"; IconFilename: "{app}\{#iconsExe}"; IconIndex: 14; Filename: "{app}\{#iconsExe}"; Parameters: "--new:word";
-Name: "{group}\{cm:jumpXLSX}"; IconFilename: "{app}\{#iconsExe}"; IconIndex: 15; Filename: "{app}\{#iconsExe}"; Parameters: "--new:cell";
-Name: "{group}\{cm:jumpPPTX}"; IconFilename: "{app}\{#iconsExe}"; IconIndex: 16; Filename: "{app}\{#iconsExe}"; Parameters: "--new:slide";
+Name: "{group}\{cm:jumpDOCX}"; IconFilename: "{app}\{#iconsExe}"; IconIndex: 14; Filename: "{app}\{#iconsExe}"; Parameters: "--app=writer --new:word";       AppUserModelID: "{#APP_ID_PREFIX}.Writer";
+Name: "{group}\{cm:jumpXLSX}"; IconFilename: "{app}\{#iconsExe}"; IconIndex: 15; Filename: "{app}\{#iconsExe}"; Parameters: "--app=sheet --new:cell";        AppUserModelID: "{#APP_ID_PREFIX}.Sheet";
+Name: "{group}\{cm:jumpPPTX}"; IconFilename: "{app}\{#iconsExe}"; IconIndex: 16; Filename: "{app}\{#iconsExe}"; Parameters: "--app=presentation --new:slide"; AppUserModelID: "{#APP_ID_PREFIX}.Presentation";
 #ifdef _EuroOffice
-Name: "{group}\{cm:jumpDOCXF}"; IconFilename: "{app}\{#iconsExe}"; IconIndex: 17; Filename: "{app}\{#iconsExe}"; Parameters: "--new:form";
+Name: "{group}\{cm:jumpDOCXF}"; IconFilename: "{app}\{#iconsExe}"; IconIndex: 17; Filename: "{app}\{#iconsExe}"; Parameters: "--app=pdf --new:form";         AppUserModelID: "{#APP_ID_PREFIX}.Pdf";
 #endif
 
 [Run]

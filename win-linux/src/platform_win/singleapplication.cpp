@@ -27,9 +27,18 @@
 #include "cascapplicationmanagerwrapper.h"
 #include "singleapplication.h"
 #include "defines.h"
+#include "cappidentity.h"
 #include <QThread>
 
-#define RECEIVER_WINDOW WINDOW_CLASS_NAME
+// Each application (Writer, Sheet, Presentation, PDF) is its own single
+// instance: its own mutex and its own message window.
+#define RECEIVER_WINDOW receiverClass().c_str()
+
+static std::wstring receiverClass()
+{
+    static const std::wstring cls = AppIdentity::receiverClass(QString::fromWCharArray(WINDOW_CLASS_NAME)).toStdWString();
+    return cls;
+}
 #define RETRIES_COUNT 10
 #define RETRIES_DELAY_MS 500
 
@@ -38,7 +47,7 @@ SingleApplication::SingleApplication(int &argc, char *argv[]) :
     QApplication(argc, argv),
     m_isPrimary(false)
 {
-    m_hMutex = CreateMutex(NULL, FALSE, TEXT(APP_MUTEX_NAME));
+    m_hMutex = CreateMutex(NULL, FALSE, AppIdentity::lockName(QString::fromUtf8(APP_MUTEX_NAME)).toStdWString().c_str());
     if (GetLastError() != ERROR_ALREADY_EXISTS) {
         m_isPrimary = true;
         startPrimary();
@@ -68,7 +77,9 @@ bool SingleApplication::sendMessage(const QByteArray &message)
     int retries = RETRIES_COUNT;
     do {
         QThread::msleep(RETRIES_DELAY_MS);
-        hwnd = FindWindow(RECEIVER_WINDOW, NULL);
+        hwnd = FindWindowEx(HWND_MESSAGE, NULL, RECEIVER_WINDOW, NULL);
+        if (hwnd == NULL)
+            hwnd = FindWindow(RECEIVER_WINDOW, NULL);
     } while (retries-- > 0 && hwnd == NULL);
 
     if (hwnd != NULL) {
@@ -76,6 +87,10 @@ bool SingleApplication::sendMessage(const QByteArray &message)
         wchar_t *cm_line = new wchar_t[msg.length() + 1];
         msg.toWCharArray(cm_line);
         cm_line[msg.length()] = '\0';
+
+        // the running application may come to the front with the document
+        // (EuroOffice Writer, Sheet... hand documents to each other)
+        AllowSetForegroundWindow(ASFW_ANY);
 
         COPYDATASTRUCT MyCDS = {1};
         MyCDS.cbData = sizeof(WCHAR) * (wcslen(cm_line) + 1);

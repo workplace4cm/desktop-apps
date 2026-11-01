@@ -40,6 +40,7 @@
 #include "common/File.h"
 #include "crecentdocuments.h"
 #include "ctemplatelibrary.h"
+#include "cfilechecker.h"
 #include <QDesktopServices>
 #include <QTimer>
 #include <QUrl>
@@ -740,6 +741,13 @@ public:
 
     auto openDocument(const COpenOptions& opts, int * view_id = nullptr) -> bool
     {
+        // Each application only hosts its own documents: a spreadsheet
+        // picked in Writer opens in EuroOffice Sheet, and so on.
+        if ( routeToOwner(opts) ) {
+            if ( view_id ) *view_id = -1;
+            return true;
+        }
+
         COpenOptions opts_ext{opts};
         if ( preferOpenEditorWindow() ) {
             GET_REGISTRY_USER(reg_user);
@@ -780,6 +788,29 @@ public:
 
         return false;
 
+    }
+
+    // true when the document belongs to another application and was
+    // handed to it (cappidentity.h)
+    auto routeToOwner(const COpenOptions& opts) -> bool
+    {
+        switch ( opts.srctype ) {
+        case etLocalFile:
+            return CAscApplicationManagerWrapper::routeLocalFile(opts.url.isEmpty() ? QString::fromStdWString(opts.wurl) : opts.url);
+        case etRecentFile:
+            if ( CFileInspector::isLocalFile(opts.url) && QFileInfo::exists(opts.url) )
+                return CAscApplicationManagerWrapper::routeLocalFile(opts.url);
+            return false;
+        case etNewFile:
+            return CAscApplicationManagerWrapper::routeNewDocument(opts.format);
+        case etTemplateFile: {
+            const QString path = QString::fromStdWString(opts.wurl);
+            return CAscApplicationManagerWrapper::routeDocument(CTemplateLibrary::appForTemplate(path),
+                                                               {"--sos-template=" + QDir::toNativeSeparators(path)});
+        }
+        default:
+            return false;   // crash recovery stays with the application that saved it
+        }
     }
 
 #ifdef DOCUMENTSCORE_OPENSSL_SUPPORT
