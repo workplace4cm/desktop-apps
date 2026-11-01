@@ -168,5 +168,11 @@ titles > "$OUT/titles.txt"
 ps -o pid,args -u "$(id -u)" | grep "[D]esktopEditors" > "$OUT/processes.txt"
 echo "--- windows"; cat "$OUT/titles.txt"
 echo "--- processes"; cat "$OUT/processes.txt"
+if [ "$FAILS" -gt 0 ]; then
+    for f in "$OUT"/*.log; do echo "--- $f"; tail -n 60 "$f"; done
+    echo "--- all windows"
+    for w in $(xdotool search --name '.' 2>/dev/null); do echo "$w $(xdotool getwindowname "$w" 2>/dev/null)"; done
+    echo "--- data folder"; find "$DATA" -maxdepth 2 2>/dev/null | head -40
+fi
 echo "failures: $FAILS"
 exit $((FAILS > 0))
