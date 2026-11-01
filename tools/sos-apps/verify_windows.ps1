@@ -132,9 +132,26 @@ function Save-Screen([string]$name) {
     } catch { Write-Host "screenshot failed: $_" }
 }
 
-function Install([string]$log) {
-    $p = Start-Process $Installer -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/FULLASSOCIATION', "/LOG=`"$(Join-Path $Out $log)`"" -Wait -PassThru
+# Waits for that process only: Start-Process -Wait would also wait for every
+# process it started (an application the installer leaves running).
+function Wait-Setup($p, [string]$log, [int]$mins = 15) {
+    if (-not $p.WaitForExit($mins * 60 * 1000)) {
+        Fail "$($p.ProcessName) still running after $mins minutes"
+        $l = Join-Path $Out $log
+        if (Test-Path $l) { Get-Content $l -Tail 40 | ForEach-Object { Write-Host "    log: $_" } }
+        Get-CimInstance Win32_Process | Where-Object { $_.Name -match 'setup|unins|vc_redist|DesktopEditors|editors|mshta|msiexec|\.tmp' } |
+            ForEach-Object { Write-Host "    process: $($_.ProcessId) $($_.CommandLine)" }
+        Save-Screen "stuck-$log"
+        $p | Stop-Process -Force -ErrorAction SilentlyContinue
+        return -1
+    }
     return $p.ExitCode
+}
+
+function Install([string]$log) {
+    Write-Host "installing ($log)"
+    $p = Start-Process $Installer -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/FULLASSOCIATION', "/LOG=`"$(Join-Path $Out $log)`"" -PassThru
+    return (Wait-Setup $p $log)
 }
 
 function Expect-Document([string]$file, [string]$how) {
@@ -299,7 +316,8 @@ Close-Apps
 Write-Host "== uninstall"
 $snap = Snapshot | Where-Object { $_ -notmatch 'recents\.xml' }
 $uninstaller = Join-Path $AppDir 'unins000.exe'
-Start-Process $uninstaller -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/LOG=`"$(Join-Path $Out 'uninstall.log')`"" -Wait
+$p = Start-Process $uninstaller -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/LOG=`"$(Join-Path $Out 'uninstall.log')`"" -PassThru
+Wait-Setup $p 'uninstall.log' | Out-Null
 # the uninstaller hands over to a copy of itself and returns at once
 for ($i = 0; $i -lt 300 -and (Test-Path $uninstaller); $i++) { Start-Sleep 1 }
 Start-Sleep 5
