@@ -28,6 +28,7 @@
 #include "ceditortools.h"
 #include "cfilechecker.h"
 #include "crecentdocuments.h"
+#include "cappidentity.h"
 #include "ctemplatelibrary.h"
 #include "OfficeFileFormats.h"
 #include "cproviders.h"
@@ -61,22 +62,6 @@ using namespace std::placeholders;
 bool CAscApplicationManagerWrapper::m_rtlEnabled = false;
 
 namespace {
-    // Secure Office Suite application (writer, sheet, presentation, pdf) whose
-    // start page the main window shows; empty for the whole suite.
-    QString g_start_app;
-
-    auto appFromArgs(const std::vector<std::wstring>& args) -> QString {
-        for (const auto& arg: args) {
-            if ( arg.rfind(L"--app=", 0) == 0 ) {
-                const std::wstring app_id = arg.substr(6);
-                if ( app_id == L"writer" || app_id == L"sheet" || app_id == L"presentation" || app_id == L"pdf" )
-                    return QString::fromStdWString(app_id);
-                break;
-            }
-        }
-        return QString();
-    }
-
     auto appFromEditorType(AscEditorType type) -> QString {
         switch ( type ) {
         case AscEditorType::etDocument:     return "writer";
@@ -85,6 +70,27 @@ namespace {
         case AscEditorType::etPdf:
         case AscEditorType::etDocumentMasterForm: return "pdf";
         default: return QString();
+        }
+    }
+
+    // the application a local document belongs to: by its extension, else
+    // by what the engine finds in the file
+    auto appForLocalFile(const std::wstring& path) -> QString {
+        QString app = AppIdentity::appForPath(QString::fromStdWString(path));
+        if ( app.isEmpty() ) {
+            if ( int format = CCefViewEditor::GetFileFormat(path) )
+                app = appFromEditorType(CEditorTools::editorTypeFromFormat(format));
+        }
+        return app;
+    }
+
+    auto newKindForFormat(int format) -> QString {
+        switch ( CEditorTools::editorTypeFromFormat(format) ) {
+        case AscEditorType::etSpreadsheet:  return "cell";
+        case AscEditorType::etPresentation: return "slide";
+        case AscEditorType::etPdf:
+        case AscEditorType::etDocumentMasterForm: return "form";
+        default: return "word";
         }
     }
 
@@ -112,8 +118,8 @@ namespace {
 
         // Secure Office Suite: the start page takes the application's identity,
         // templates and recent documents
-        if ( !g_start_app.isEmpty() )
-            additional.append("&app=" + g_start_app);
+        if ( !AppIdentity::current().isEmpty() )
+            additional.append("&app=" + AppIdentity::current());
 
         return ("file:///" + data_path + additional).toStdWString();
     }
@@ -969,6 +975,10 @@ void CAscApplicationManagerWrapper::handleInputCmd(const std::vector<wstring>& v
     std::vector<std::wstring> vec_window_actions;
     bool has_documents = false;
 
+    // documents of another application open there (cappidentity.h)
+    const QString this_app = AppIdentity::current();
+    QMap<QString, QStringList> routed;
+
     for (const auto& arg: vargs) {
         COpenOptions open_opts;
         open_opts.name = QCoreApplication::translate("CAscTabWidget", "Document");
@@ -986,6 +996,14 @@ void CAscApplicationManagerWrapper::handleInputCmd(const std::vector<wstring>& v
                 open_opts.mode = i == 0 ? COpenOptions::eOpenMode::review :
                                     i == 1 ? COpenOptions::eOpenMode::view : COpenOptions::eOpenMode::edit;
             }else
+            if ( check_param(arg, L"--sos-template=") ) {
+                // a new document from a template, handed over by another
+                // application of the suite
+                const QString tpl = QString::fromStdWString(arg.substr(15));
+                if ( !tpl.isEmpty() && _app.m_private->createFromTemplate(tpl, QString(), 0, -1) )
+                    has_documents = true;
+                continue;
+            } else
             if ( check_param(arg, L"--new" ) ) {
                 open_opts.srctype = etNewFile;
                 open_opts.format = arg.rfind(L"cell") != wstring::npos ? AVS_OFFICESTUDIO_FILE_SPREADSHEET_XLSX :
@@ -995,6 +1013,12 @@ void CAscApplicationManagerWrapper::handleInputCmd(const std::vector<wstring>& v
                             /*if ( line.rfind(L"word") != wstring::npos )*/ AVS_OFFICESTUDIO_FILE_DOCUMENT_DOCX;
 
                 open_opts.name = AscAppManager::newFileName(open_opts.format);
+
+                const QString owner = appFromEditorType(CEditorTools::editorTypeFromFormat(open_opts.format));
+                if ( !owner.isEmpty() && owner != this_app ) {
+                    routed[owner] << "--new:" + newKindForFormat(open_opts.format);
+                    continue;
+                }
             } else continue;
 
 //            if ( check_param(arg, L"single-window") )
@@ -1066,14 +1090,29 @@ void CAscApplicationManagerWrapper::handleInputCmd(const std::vector<wstring>& v
                         open_opts.name = QString::fromStdWString(open_opts.wurl.substr(++_c_pos));
 
 //                    open_opts.srctype = etLocalFile;
+                    const QString owner = appForLocalFile(open_opts.wurl);
+                    if ( !owner.isEmpty() && owner != this_app ) {
+                        routed[owner] << QDir::toNativeSeparators(str_url);
+                        continue;
+                    }
                 } else
                 if ( _error == EBADF && !open_in_new_window ) {
                     list_failed.push_back({open_opts});
                     continue;
                 } else {
-                    /* file doesn't exists */
+                    /* file doesn't exists: a new document of the application it belongs to */
+                    const QString owner = AppIdentity::appForPath(str_url);
+                    if ( !owner.isEmpty() && owner != this_app ) {
+                        routed[owner] << QDir::toNativeSeparators(str_url);
+                        continue;
+                    }
+                    const QString app = owner.isEmpty() ? this_app : owner;
+                    if ( app == "pdf" )
+                        continue;
                     open_opts.srctype = etNewFile;
-                    open_opts.format = open_opts.format = AVS_OFFICESTUDIO_FILE_DOCUMENT_DOCX;
+                    open_opts.format = app == "sheet" ? AVS_OFFICESTUDIO_FILE_SPREADSHEET_XLSX :
+                                       app == "presentation" ? AVS_OFFICESTUDIO_FILE_PRESENTATION_PPTX :
+                                                               AVS_OFFICESTUDIO_FILE_DOCUMENT_DOCX;
                     open_opts.name = AscAppManager::newFileName(open_opts.format);
                 }
             } else {
@@ -1120,16 +1159,15 @@ void CAscApplicationManagerWrapper::handleInputCmd(const std::vector<wstring>& v
         }
     }
 
+    for (auto it = routed.cbegin(); it != routed.cend(); ++it)
+        AppIdentity::launch(qApp->applicationFilePath(), it.key(), it.value());
+
     // Launching an application with no document shows its start page; a
     // document given on the command line (file association) opens directly.
-    const QString app_id = appFromArgs(vargs);
-    if ( !app_id.isEmpty() ) {
-        if ( !has_documents && list_failed.empty() && vec_window_actions.empty() )
-            showStartPage(app_id);
-        else
-        if ( !_app.m_pMainWindow )
-            g_start_app = app_id;
-    }
+    const bool app_launch = std::any_of(vargs.begin(), vargs.end(), [](const std::wstring& a) {
+                                            return a.rfind(L"--app=", 0) == 0; });
+    if ( app_launch && !has_documents && routed.isEmpty() && list_failed.empty() && vec_window_actions.empty() )
+        showStartPage(this_app);
 
     if ( !list_failed.empty() && !open_in_new_window ) {
         if ( !_app.m_pMainWindow ) {
@@ -1307,7 +1345,6 @@ void CAscApplicationManagerWrapper::startApp()
         in_args.push_back(L"--new:word");
     }
 
-    g_start_app = appFromArgs(in_args);
     handleInputCmd(in_args);
     if ( _app.m_vecEditors.empty() && !_app.m_pMainWindow ) {
         _app.m_pMainWindow = _app.prepareMainWindow();
@@ -1547,12 +1584,10 @@ void CAscApplicationManagerWrapper::showStartPage(const QString& app_id)
 {
     APP_CAST(_app)
 
-    if ( app_id != g_start_app ) {
-        g_start_app = app_id;
-        if ( _app.m_pMainWindow ) {
-            if ( CCefView * view = _app.GetViewById(_app.m_pMainWindow->startPanelId()) )
-                view->load(startPageUrl());
-        }
+    // another application's start page belongs to that application
+    if ( AppIdentity::isApp(app_id) && app_id != AppIdentity::current() ) {
+        AppIdentity::launch(qApp->applicationFilePath(), app_id, {});
+        return;
     }
 
     gotoMainWindow();
@@ -1560,25 +1595,29 @@ void CAscApplicationManagerWrapper::showStartPage(const QString& app_id)
         _app.m_pMainWindow->goStart();
 }
 
+bool CAscApplicationManagerWrapper::routeDocument(const QString& owner, const QStringList& args)
+{
+    if ( !AppIdentity::isApp(owner) || owner == AppIdentity::current() )
+        return false;
+
+    if ( !AppIdentity::launch(qApp->applicationFilePath(), owner, args) )
+        CLogger::log("can't start " + AppIdentity::name(owner));
+    return true;
+}
+
+bool CAscApplicationManagerWrapper::routeLocalFile(const QString& path)
+{
+    return routeDocument(appForLocalFile(path.toStdWString()), {QDir::toNativeSeparators(path)});
+}
+
+bool CAscApplicationManagerWrapper::routeNewDocument(int format)
+{
+    return routeDocument(appFromEditorType(CEditorTools::editorTypeFromFormat(format)), {"--new:" + newKindForFormat(format)});
+}
+
 void CAscApplicationManagerWrapper::gotoMainWindow(size_t src)
 {
     APP_CAST(_app)
-
-    // Home in an editor of one of the applications shows that application's
-    // start page
-    if ( src && !g_start_app.isEmpty() ) {
-        const CEditorWindow & _editor = *reinterpret_cast<CEditorWindow *>(src);
-        if ( CTabPanel * panel = _editor.mainView() ) {
-            const QString app_id = appFromEditorType(panel->data()->contentType());
-            if ( !app_id.isEmpty() && app_id != g_start_app ) {
-                g_start_app = app_id;
-                if ( _app.m_pMainWindow ) {
-                    if ( CCefView * view = _app.GetViewById(_app.m_pMainWindow->startPanelId()) )
-                        view->load(startPageUrl());
-                }
-            }
-        }
-    }
 
     if ( !_app.m_pMainWindow ) {
         GET_REGISTRY_USER(reg_user)
@@ -1612,9 +1651,9 @@ QJsonObject CAscApplicationManagerWrapper::aboutInfo()
     QJsonObject _json_obj;
     _json_obj["version"]    = ABOUT_VERSION_STR;
 #if defined(ABOUT_PAGE_APP_NAME)
-    _json_obj["appname"]    = ABOUT_PAGE_APP_NAME;
+    _json_obj["appname"]    = AppIdentity::current().isEmpty() ? QString(ABOUT_PAGE_APP_NAME) : AppIdentity::name();
 #else
-    _json_obj["appname"]    = "Secure Office Suite";
+    _json_obj["appname"]    = AppIdentity::name();
 #endif
     _json_obj["rights"]     = ABOUT_COPYRIGHT_STR;
     _json_obj["link"]       = URL_SITE;

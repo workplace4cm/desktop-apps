@@ -28,6 +28,7 @@
 
 #include "qascapplicationmanager.h"
 #include <QObject>
+#include <QStringList>
 #include <QMutex>
 #include <QJsonObject>
 #include <QDesktopServices>
@@ -174,6 +175,12 @@ public:
     static void             initializeApp();
     static void             gotoMainWindow(size_t pw = 0);
     static void             showStartPage(const QString& app_id);
+    // Secure Office Suite: a document of another application (EuroOffice
+    // Writer, Sheet, Presentation, PDF) opens in that application's own
+    // process; true when it was handed over
+    static bool             routeDocument(const QString& owner, const QStringList& args);
+    static bool             routeLocalFile(const QString& path);
+    static bool             routeNewDocument(int format);
     static void             handleInputCmd(const std::vector<std::wstring>&);
     static void             closeEditorWindow(const size_t);
     static void             pinWindowToTab(CEditorWindow *editor, bool by_position = true);

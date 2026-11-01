@@ -24,6 +24,7 @@
 */
 
 #include "windows/cmainwindow.h"
+#include "cappidentity.h"
 #include "ceditortools.h"
 #include "iconfactory.h"
 #include "clangater.h"
@@ -72,9 +73,8 @@ CMainWindow::CMainWindow(const QRect &rect) :
     m_pMainPanel = createMainPanel(this);
     setCentralWidget(m_pMainPanel);
     QString css{AscAppManager::getWindowStylesheets(m_dpiRatio)};
+    setWindowTitle(AppIdentity::windowTitle());
 #ifdef __linux__
-    if (WindowHelper::getEnvInfo() == WindowHelper::KDE)
-        setWindowTitle(tr("Main Window"));
     setAcceptDrops(true);
     if (isCustomWindowStyle()) {
         CPlatformDecoration::setTitleWidget(m_boxTitleBtns);
@@ -472,10 +472,11 @@ QWidget* CMainWindow::createMainPanel(QWidget *parent)
     m_pButtonMain->setObjectName( "toolButtonMain" );
     // Icon-only image plus the product name as real text (instead of a
     // wordmark image), so the build-time brand name shows up here.
+    // the application's own name (EuroOffice Writer...), or the suite's
 #ifdef ABOUT_PAGE_APP_NAME
-    const QString productName = QString::fromUtf8(ABOUT_PAGE_APP_NAME);
+    const QString productName = AppIdentity::current().isEmpty() ? QString::fromUtf8(ABOUT_PAGE_APP_NAME) : AppIdentity::name();
 #else
-    const QString productName = QString::fromUtf8(APP_TITLE);
+    const QString productName = AppIdentity::name();
 #endif
     m_pButtonMain->setText(productName);
     m_pButtonMain->setToolTip(productName);
@@ -633,15 +634,13 @@ void CMainWindow::onEditorAllowedClose(int uid)
 
 void CMainWindow::onTabChanged(int index)
 {
-    QString title("");
-#ifdef __linux__
-    if (WindowHelper::getEnvInfo() == WindowHelper::KDE)
-        title = tr("Main Window");
-#endif
+    // "Report.docx - EuroOffice Writer", or the application's name on its
+    // start page: the taskbar and window switcher show which application
+    QString title = AppIdentity::windowTitle();
     if (index > -1) {
         auto _panel = m_pTabs->panel(index);
         if (_panel)
-            title = _panel->data()->title();
+            title = AppIdentity::windowTitle(_panel->data()->title());
     } else {
         ((QCefView *)m_pMainWidget)->setFocusToCef();
     }
@@ -949,6 +948,8 @@ void CMainWindow::doOpenLocalFile(COpenOptions& opts)
     QFileInfo info(opts.url);
     if (!info.exists()) { return; }
     if (!info.isFile()) { return; }
+    // a document of another application (dropped here, for one) opens there
+    if (info.isReadable() && AscAppManager::routeLocalFile(opts.url)) { return; }
     if (!info.isReadable()) {
         QTimer::singleShot(0, this, [=] {
             CMessage::error(this, QObject::tr("Access to file '%1' is denied!").arg(opts.url));
@@ -995,6 +996,9 @@ void CMainWindow::onLocalFileRecent(const COpenOptions& opts)
             return;
         }
     } else forcenew = true;
+
+    if ( !forcenew && opts.srctype != etRecoveryFile && AscAppManager::routeLocalFile(opts.url) )
+        return;
 
 //    openLocalFile(opts);
     int result = m_pTabs->openLocalDocument(opts, true, forcenew);

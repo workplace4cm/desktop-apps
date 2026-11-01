@@ -32,6 +32,7 @@
 # include <unistd.h>
 #endif
 #include "cascapplicationmanagerwrapper.h"
+#include "cappidentity.h"
 #include "defines.h"
 #include "clangater.h"
 #include "clogger.h"
@@ -44,7 +45,27 @@
 #include <QGuiApplication>
 #include <QDebug>
 #include <QFile>
+#include <QDir>
+#include <QDirIterator>
 
+// The first start of an application takes the suite's saved page settings
+// (start page and editor preferences) into its own browser profile.
+static void copyLocalStorage(const QString& from, const QString& to)
+{
+    const QString src = from + "/Local Storage", dst = to + "/Local Storage";
+    if ( QDir(to).exists() || !QDir(src).exists() )
+        return;
+
+    QDirIterator it(src, QDir::Files | QDir::Hidden | QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
+    while ( it.hasNext() ) {
+        const QString file = it.next();
+        if ( it.fileName() == "LOCK" )
+            continue;
+        const QString target = dst + file.mid(src.length());
+        QDir().mkpath(QFileInfo(target).absolutePath());
+        QFile::copy(file, target);
+    }
+}
 
 int main( int argc, char *argv[] )
 {
@@ -54,7 +75,6 @@ int main( int argc, char *argv[] )
     std::vector<char*> dynamic_argv;
 #ifdef _WIN32
     Core_SetProcessDpiAwareness();
-    Utils::setAppUserModelId();
     WCHAR * cm_line = GetCommandLine();
     InputArgs::init(cm_line);
     if ( InputArgs::contains(L"--assoc") ) {
@@ -96,6 +116,32 @@ int main( int argc, char *argv[] )
         return 0;
     }
 #endif
+
+    // EuroOffice Writer, Sheet, Presentation and PDF are separate
+    // applications: this process is the one --app=<id> names, or the one
+    // whose documents are on the command line (none: the suite page).
+    QStringList cmd_args;
+    for (const auto& a : InputArgs::arguments())
+        cmd_args << QString::fromStdWString(a);
+    AppIdentity::setCurrent(AppIdentity::appFromArgs(cmd_args));
+#ifdef _WIN32
+    Utils::setAppUserModelId();
+#endif
+    {
+        // Documents of another application open in that application. A
+        // launch that only carries other applications' documents ends here,
+        // without showing this application.
+        QStringList keep;
+        QMap<QString, QStringList> routed;
+        AppIdentity::partitionArgs(AppIdentity::current(), cmd_args, QDir::currentPath(), keep, routed);
+        if ( !routed.isEmpty() && !AppIdentity::hasDocumentArgs(keep, QDir::currentPath()) ) {
+            const QString program = QString::fromStdWString(NSFile::GetProcessPath());
+            for (auto it = routed.cbegin(); it != routed.cend(); ++it)
+                AppIdentity::launch(program, it.key(), it.value());
+            return 0;
+        }
+    }
+
     if (!isWayland) {
         // Plasma and other environments export QT_SCREEN_SCALE_FACTORS /
         // QT_SCALE_FACTOR on X11. In Qt 6 these activate high-DPI scaling
@@ -132,8 +178,13 @@ int main( int argc, char *argv[] )
     QCoreApplication::setAttribute(Qt::AA_UseDesktopOpenGL);   // avoid Qt's ANGLE colliding with CEF's libEGL/libGLESv2
 #endif
 
-    QCoreApplication::setApplicationName(QString::fromUtf8(WINDOW_NAME));
-    QApplication::setApplicationDisplayName(QString::fromUtf8(WINDOW_NAME));
+    // the application's name is its X11 WM_CLASS too (see the .desktop files)
+    QCoreApplication::setApplicationName(AppIdentity::name());
+    QApplication::setApplicationDisplayName(AppIdentity::name());
+#ifdef __linux__
+    // Wayland app_id: the windows belong to the application's .desktop file
+    QGuiApplication::setDesktopFileName(AppIdentity::desktopFileName(QString::fromUtf8(DESKTOP_FILE_NAME)));
+#endif
 
     QString user_data_path = Utils::getUserPath() + APP_DATA_PATH;
     auto setup_paths = [&user_data_path](CAscApplicationManager * manager) {
@@ -165,6 +216,17 @@ int main( int argc, char *argv[] )
         manager->m_oSettings.additional_fonts_folder.push_back(app_path + L"/fonts");
         manager->m_oSettings.country = Utils::systemLocationCode().toStdString();
         manager->m_oSettings.connection_error_path      = app_path + L"/editors/webext/noconnect.html";
+
+        // Each application keeps its own crash-recovery copies and browser
+        // profile (two processes can't share one); recent documents, the
+        // engine's recents.xml, settings and fonts stay shared.
+        const QString suffix = AppIdentity::dataSuffix();
+        if ( !suffix.isEmpty() ) {
+            const QString suite_cache = QString::fromStdWString(manager->m_oSettings.cache_path);
+            copyLocalStorage(suite_cache, suite_cache + suffix);
+            manager->m_oSettings.cache_path = (suite_cache + suffix).toStdWString();
+            manager->m_oSettings.recover_path = (user_data_path + "/recover" + suffix).toStdWString();
+        }
     };
 
     if ( InputArgs::contains(L"--version") ) {
@@ -204,11 +266,14 @@ int main( int argc, char *argv[] )
         if (_args.size() > 0) {
             foreach (auto w_arg, _args) {
                 const QString arg = QString::fromStdWString(w_arg);
-                if ( arg.startsWith("--new:") || arg.startsWith("--app=") )
+                if ( arg.startsWith("--new:") || arg.startsWith("--app=") || arg.startsWith("--sos-template=") )
                     _out_args.append(arg).append(";");
                 else
-                if ( arg.mid(0,2) != "--" )
-                    _out_args.append(arg + ";");
+                if ( arg.mid(0,2) != "--" ) {
+                    // the running instance has another working folder
+                    const QString path = AppIdentity::documentPath(arg, QDir::currentPath());
+                    _out_args.append((path.isEmpty() ? arg : QDir::toNativeSeparators(path)) + ";");
+                }
             }
         }
         bool res = app.sendMessage(_out_args.toUtf8());

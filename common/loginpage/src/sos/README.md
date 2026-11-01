@@ -66,13 +66,26 @@ The recent list of an application shows and clears only its own documents.
 
 ## Launching
 
-`--app=<id>` opens that application's start page. A second launch with
-another `--app` while the suite runs switches the main window's start page
-and brings it to the front; a launch with a document opens the document
-without the start page. Home in an editor window returns to the start page
-of that editor's application. The Windows Start Menu and the Linux menu have
-one entry per application (`package/inno/common.iss`,
-`package/common/linux/sos-app.desktop.m4`).
+EuroOffice Writer, Sheet, Presentation and PDF are four applications: each
+runs in its own process (`win-linux/src/cappidentity.{h,cpp}`) with its own
+single-instance lock, window title, icon, taskbar identity (Windows
+AppUserModelID, Linux desktop file and WM_CLASS), browser profile and
+crash-recovery folder; the editing engine and libraries are shared.
+
+- `--app=<id>` starts that application on its start page (`?app=<id>`); a
+  second launch reaches the running instance of the same application.
+- Without `--app`, the documents on the command line decide the application.
+- A document of another application, from any source (command line, Open,
+  drag and drop, recents, templates, `--new:<kind>`), is handed to that
+  application's process (`--sos-template=<path>` for templates); without
+  documents and `--app` the program shows this page as the suite page, which
+  only launches.
+- Entry points: Windows Start Menu and desktop shortcuts and per-application
+  file associations (`package/inno`); Linux commands
+  `<package>-writer|sheet|presentation|pdf`, `.desktop` files and icons
+  (`package/common/linux`). Icons: `tools/sos-apps/make_app_icons.py`.
+- `tools/sos-apps/verify_apps.sh` checks all of this on an installed package
+  (CI job `verify-apps`).
 
 ## Settings store (`store.js`)
 

@@ -71,6 +71,8 @@ rm -rf "%{buildroot}"
 %attr(-, root, root) %{_datadir}/icons/*
 %attr(-, root, root) %{_datadir}/licenses/*
 %attr(755, root, root) %{_bindir}/%{_desktopeditors_exec}
+# EuroOffice Writer, Sheet, Presentation and PDF
+%attr(755, root, root) %{_bindir}/%{_desktopeditors_exec}-*
 %if "%{_company_name}" == "euro-office"
 %attr(-, root, root) %{_bindir}/desktopeditors
 %exclude /opt/%{_desktopeditors_prefix}/editors/web-apps/apps/*/main/resources/help
