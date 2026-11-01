@@ -178,8 +178,22 @@ function Check-FileTypes([string]$when) {
         else { Fail "$ext -> '$progId' -> '$cmd' ($when)" }
         $resolved = [SosWin]::Assoc($ext, 1)
         if ($resolved -match "DesktopEditors\.exe`"? --app=$app ") { Pass "Explorer opens $ext with --app=$app ($when)" }
+        elseif (Guarded $ext) {
+            Write-Host "NOTE: Windows guards the user's own choice for $ext ($(UserChoiceOf $ext), UCPD driver running), so setup cannot change it; the default associations policy gives $ext to $($Apps[$app]) at the next sign-in ($when)"
+        }
         else { Fail "Explorer opens $ext with '$resolved' (UserChoice: $((Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\$ext\UserChoice" -ErrorAction SilentlyContinue).ProgId)) ($when)" }
     }
+}
+
+function UserChoiceOf([string]$ext) {
+    (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\$ext\UserChoice" -ErrorAction SilentlyContinue).ProgId
+}
+# Windows' UCPD driver keeps programs from changing the user's own choice of
+# PDF application; only the user, or the policy at sign-in, can change it
+function Guarded([string]$ext) {
+    $uc = UserChoiceOf $ext
+    $ucpd = Get-Service UCPD -ErrorAction SilentlyContinue
+    return ($ext -eq '.pdf' -and $uc -and $uc -notlike 'ASC.*' -and $ucpd -and $ucpd.Status -eq 'Running')
 }
 
 # user files that must survive, with hashes (browser caches excluded)
@@ -275,13 +289,22 @@ New-Item -ItemType Directory -Force -Path $Docs | Out-Null
 Copy-Item (Join-Path $Samples 'Sample.*') $Docs -Exclude '*.md'
 foreach ($ext in $Exts) {
     $f = Join-Path $Docs "Sample$ext"
-    Start-Process -FilePath $f
-    Expect-Document $f 'double-click'
+    if (Guarded $ext) {
+        # what a double-click runs once the policy has applied: our ProgID's open command
+        $progId = (Get-ItemProperty "HKLM:\SOFTWARE\Classes\$ext").'(default)'
+        $cmd = (Get-ItemProperty "HKLM:\SOFTWARE\Classes\$progId\shell\open\command").'(default)'
+        $exe, $rest = $cmd -split '(?<=^"[^"]+")\s+', 2
+        Start-Process -FilePath $exe.Trim('"') -ArgumentList ($rest -replace '%1', $f)
+        Expect-Document $f "open command of $progId"
+    } else {
+        Start-Process -FilePath $f
+        Expect-Document $f 'double-click'
+    }
 }
 Save-Screen '4-double-click'
 [SosWin]::Windows() | Set-Content (Join-Path $Out 'windows-double-click.txt')
 foreach ($app in $Apps.Keys) {
-    $n = @(Get-CimInstance Win32_Process -Filter "Name='editors.exe'" | Where-Object { $_.CommandLine -match "--app=$app( |$)" -and $_.CommandLine -notmatch '--type=' }).Count
+    $n = @(Get-CimInstance Win32_Process -Filter "Name='DesktopEditors.exe'" | Where-Object { $_.CommandLine -match "--app=$app( |$)" -and $_.CommandLine -notmatch '--type=' }).Count
     if ($n -eq 1) { Pass "one $app process for all its documents" } else { Write-Host "note: $n $app processes" }
 }
 Close-Apps

@@ -670,9 +670,10 @@ begin
         progId3 := '';
         if RegQueryStringValue(HKEY_CURRENT_USER, 'Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.' + ext + '\UserChoice', 'ProgId', progId3) and
               (CompareText(progId3, argsArray[0]) <> 0) then
-          // Windows may refuse this (PDF on recent Windows 11); the
+          // Windows may refuse this (its UCPD driver guards PDF); the
           // default associations policy below covers it at next sign-in
-          RegDeleteKeyIncludingSubkeys(HKEY_CURRENT_USER, 'Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.' + ext + '\UserChoice');
+          if not RegDeleteKeyIncludingSubkeys(HKEY_CURRENT_USER, 'Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.' + ext + '\UserChoice') then
+            Log('Windows kept the user''s choice of ' + progId3 + ' for .' + ext + '; the default associations policy applies at next sign-in');
 
         assocXml := assocXml + '  <Association Identifier=".' + ext + '" ProgId="' + argsArray[0] +
                     '" ApplicationName="' + SosAppName(argsArray[3]) + '" />' + #13#10;
@@ -1044,7 +1045,9 @@ begin
   begin
     GetWindowsVersionEx(version);
     if (version.Major > 6) or ((version.Major = 6) and (version.Minor >= 1)) then begin
-      Exec(ExpandConstant('{app}\{#iconsExe}'), '--remove-jump-list', '', SW_SHOWNORMAL, ewWaitUntilTerminated, ErrorCode);
+      // No --remove-jump-list: this build has no projicons helper, so
+      // {#iconsExe} is the editor itself and would open a window and stop
+      // the uninstall until someone closed it.
       Exec(ExpandConstant('{app}\updatesvc.exe'), '--delete', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
     end;
 
@@ -1109,7 +1112,8 @@ begin
     DoPostInstall();
     GetWindowsVersionEx(version);
     if (version.Major > 6) or ((version.Major = 6) and (version.Minor >= 1)) then begin
-      Exec(ExpandConstant('{app}\{#iconsExe}'), '--create-jump-list', '', SW_SHOWNORMAL, ewWaitUntilTerminated, ErrorCode);
+      // No --create-jump-list: {#iconsExe} is the editor itself in this
+      // build (no projicons helper); it would open a window and hold setup.
       // Secure Office Suite never checks for updates online and installs no update service.
       RegWriteDWordValue(HKEY_LOCAL_MACHINE, ExpandConstant('{#APP_REG_PATH}'), 'CheckForUpdates', 0);
     end;
