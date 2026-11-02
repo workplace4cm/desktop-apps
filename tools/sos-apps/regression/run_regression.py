@@ -597,6 +597,49 @@ def functional(app, docs):
     sos.kill_all()
 
 
+def busy_open(docs):
+    """a second document arrives (double-click) while the application is
+    still asking about the first one (CSV / TXT options): the application
+    must stay up and open both"""
+    A = 'functional'
+    it = '18 Second document while an import question is open'
+    os.makedirs(docs, exist_ok=True)
+    for app, first, second in (('sheet', 'csv', 'ods'), ('writer', 'txt', 'docx')):
+        with guarded(A, it, app):
+            sos.kill_all()
+            p1 = sos.fresh_copy(os.path.join(sos.samples_dir(), 'Sample.' + first), docs, 'Busy-%s.%s' % (app, first))
+            p2 = sos.fresh_copy(os.path.join(sos.samples_dir(), 'Sample.' + second), docs, 'Busy-%s.%s' % (app, second))
+            before = sos.doc_ids()
+            sos.launch(app, p1)
+            t = sos.wait_target(sos.is_doc, 90, exclude=before)
+            ed = sos.Editor(t, app) if t else None
+            asked = []
+            end = time.time() + 60
+            while ed and time.time() < end and not asked:
+                asked = ed.alerts()
+                time.sleep(0.5)
+            pid0 = sos.app_pids(app)
+            sos.launch(app, p2)
+            time.sleep(20)
+            pid1 = sos.app_pids(app)
+            alive = bool(pid1)
+            if ed and alive:
+                ed.answer_alert()
+                time.sleep(3)
+            new = sos.doc_ids() - before
+            ready = []
+            for x in [x for x in cdp.targets() if x['id'] in new]:
+                e = sos.Editor(x, app)
+                ready.append(bool(e.wait_ready(60)))
+                e.close()
+            wins = [w[1] for w in sos.windows()]
+            ok = alive and len(new) == 2 and all(ready)
+            record(A, it, app, 'PASS' if ok else 'FAIL',
+                   '%s opened, question shown %s; %s sent while it was open; process %s -> %s; documents open %d, loaded %s; windows %s'
+                   % (first.upper(), bool(asked), second.upper(), pid0, pid1, len(new), ready, wins))
+    sos.kill_all()
+
+
 # -- format regression ----------------------------------------------------------------
 
 NOT_WRITABLE = {'doc', 'xls', 'ppt'}   # x2t reads these binary formats but has no writer
@@ -748,6 +791,7 @@ def main():
         if a.only in (None, 'functional'):
             for app in a.apps.split(','):
                 functional(app, os.path.join(docs, app))
+            busy_open(os.path.join(docs, 'busy'))
         if a.only in (None, 'formats'):
             formats(os.path.join(docs, 'formats'))
     finally:
