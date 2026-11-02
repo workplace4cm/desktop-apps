@@ -156,8 +156,10 @@ def kill_all(secs=20):
 
 def launch(app, *args):
     os.makedirs(os.path.join(OUT, 'logs'), exist_ok=True)
-    # --ascdesktop-support-debug-info: CEF opens DevTools on 127.0.0.1:8080
-    cmd = [PREFIX + ('-' + app if app else ''), '--ascdesktop-support-debug-info'] + list(args)
+    # Release builds never open the DevTools port themselves (desktop-sdk
+    # ENABLE_REMOTE_DEBUGGING_PORT); Chromium's own command-line switch does.
+    cmd = [PREFIX + ('-' + app if app else ''), '--remote-debugging-port=%d' % cdp.PORT,
+           '--remote-allow-origins=*'] + list(args)
     logf = open(os.path.join(OUT, 'logs', (app or 'suite') + '.log'), 'a')
     logf.write('\n$ %s\n' % ' '.join(cmd))
     logf.flush()
