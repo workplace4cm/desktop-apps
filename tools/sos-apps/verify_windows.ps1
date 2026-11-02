@@ -189,7 +189,8 @@ function Check-FileTypes([string]$when) {
         $resolved = [SosWin]::Assoc($ext, 1)
         if ($resolved -match "DesktopEditors\.exe`"? --app=$app ") { Pass "Explorer opens $ext with --app=$app ($when)" }
         elseif (Guarded $ext) {
-            Write-Host "NOTE: Windows kept Edge ($(UserChoiceOf $ext)) as this user's $ext application, so setup cannot change it for the signed-in session; the default associations policy gives $ext to $($Apps[$app]) at the next sign-in ($when)"
+            $who = if (UserChoiceOf $ext) { "kept Edge ($(UserChoiceOf $ext)) as this user's $ext application" } else { "asks this user once which application opens $ext (another one had it before)" }
+            Write-Host "NOTE: Windows $who, so setup cannot decide it for the signed-in session; the default associations policy gives $ext to $($Apps[$app]) at the next sign-in ($when)"
             Get-ChildItem $Out -Filter *.log | Select-String -SimpleMatch "for $ext" | ForEach-Object { Write-Host "    log: $($_.Filename): $($_.Line)" }
         }
         else {
@@ -210,9 +211,14 @@ function UserChoiceOf([string]$ext) {
 # choice (its log says so) and Windows writes Edge's back straight away (the
 # UCPD driver does the same on newer Windows). Only the user, or the default
 # associations policy when the user next signs in, can change it.
+# Windows 11 / Server 2025 do the same for TXT: Notepad already had it, so
+# with no choice made yet Windows asks the signed-in user once ("How do you
+# want to open this file?", OpenWith.exe) instead of following the machine
+# setting. The policy decides at the next sign-in there too.
 function Guarded([string]$ext) {
     $uc = UserChoiceOf $ext
-    return ($ext -eq '.pdf' -and $uc -like 'MSEdge*')
+    if ($ext -eq '.pdf' -and $uc -like 'MSEdge*') { return $true }
+    return ($ext -eq '.txt' -and -not $uc -and [SosWin]::Assoc($ext, 1) -match '\\OpenWith\.exe')
 }
 
 # user files that must survive, with hashes (browser caches excluded)
