@@ -19,7 +19,6 @@ import argparse
 import json
 import os
 import shutil
-import stat
 import sys
 import time
 import traceback
@@ -540,7 +539,7 @@ def functional(app, docs):
     with guarded(A, '20 Inaccessible file', app):
         ext = d['formats'][0 if app != 'writer' else 1]
         p = sos.fresh_copy(os.path.join(sos.samples_dir(), 'Sample.' + ext), docs, 'Locked-%s.%s' % (app, ext))
-        os.chmod(p, 0)
+        sos.deny_read(p)
         before = sos.doc_ids()
         sos.launch(app, p)
         time.sleep(25)
@@ -557,7 +556,7 @@ def functional(app, docs):
                'no read permission: new tabs %d, editor messages %s, windows %s, application still running %s; screen: %s'
                % (len(new), msgs, wins, alive, scr))
         sos.close_stray_dialogs()
-        os.chmod(p, stat.S_IRUSR | stat.S_IWUSR)
+        sos.allow_read(p)
     with guarded(A, '20 Nonexistent path on the command line', app):
         before = sos.doc_ids()
         sos.launch(app, os.path.join(docs, 'does-not-exist.' + d['formats'][0]))
@@ -648,7 +647,7 @@ def report(out):
     with open(os.path.join(out, 'results.json'), 'w') as f:
         json.dump({'marker': MARK, 'results': RESULTS}, f, indent=1)
     icon = {'PASS': 'PASS', 'FAIL': '**FAIL**', 'NA': 'n/a', 'SKIP': 'skipped'}
-    lines = ['# Phase 9 regression results (Ubuntu)', '']
+    lines = ['# Phase 9 regression results (%s)' % ('Windows' if sos.IS_WIN else 'Ubuntu'), '']
     fn = [r for r in RESULTS if r['area'] == 'functional']
     if fn:
         apps = [a for a in APPS if any(r['app'] == a for r in fn)]

@@ -19,7 +19,7 @@ PREFIX = os.environ.get('SOS_PREFIX', 'secure-office-suite-desktopeditors')
 BASE = re.sub(r'-desktopeditors$', '', PREFIX)
 APP_DIR = '/opt/%s/desktopeditors' % BASE
 DATA = os.path.expanduser('~/.local/share/%s/desktopeditors' % BASE)
-RECENTS = os.path.join(DATA, 'sos-recents.json')
+RECENTS_CANDIDATES = [os.path.join(DATA, 'sos-recents.json')]
 OUT = os.environ.get('SOS_OUT', '/tmp/sos-regression')
 
 APPS = {
@@ -409,11 +409,13 @@ class StartPage:
 
 
 def read_recents():
-    try:
-        with open(RECENTS) as f:
-            return json.load(f)
-    except Exception:
-        return {}
+    for f in RECENTS_CANDIDATES:
+        try:
+            with open(f) as fh:
+                return json.load(fh)
+        except Exception:
+            pass
+    return {}
 
 
 def recent_entry(app, path):
@@ -464,3 +466,26 @@ def wait_file(path, since=0, secs=60, min_size=1):
             pass
         time.sleep(0.5)
     return False
+
+
+# -- Windows ----------------------------------------------------------------------
+IS_WIN = os.name == 'nt'
+if IS_WIN:
+    import winplat
+    from winplat import (windows, key, xtype, screenshot, screen_text, app_pids,  # noqa: F401,F811
+                         kill_all, launch, close_window, file_dialog)
+    APP_DIR, DATA, RECENTS_CANDIDATES = winplat.APP_DIR, winplat.DATA, winplat.RECENTS_CANDIDATES
+
+
+def deny_read(path):
+    if IS_WIN:
+        winplat.deny_read(path)
+    else:
+        os.chmod(path, 0)
+
+
+def allow_read(path):
+    if IS_WIN:
+        winplat.allow_read(path)
+    else:
+        os.chmod(path, 0o600)
