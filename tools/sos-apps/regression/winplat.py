@@ -51,6 +51,25 @@ def activate(wid):
 KEYS = {'Return': '{ENTER}', 'Escape': '{ESC}', 'Tab': '{TAB}', 'F4': '{F4}'}
 
 
+def press_button(text, title_rx='.'):
+    """click a button of a message box of the application by its text"""
+    for wid, title, _ in windows():
+        h = int(wid)
+        try:
+            if win32gui.GetClassName(h) != '#32770' or not re.search(title_rx, title):
+                continue
+        except Exception:
+            continue
+        for c in _children(h):
+            try:
+                if win32gui.GetClassName(c) == 'Button' and win32gui.GetWindowText(c).replace('&', '') == text:
+                    win32gui.PostMessage(c, 0x00F5, 0, 0)     # BM_CLICK
+                    return True
+            except Exception:
+                pass
+    return False
+
+
 def _keyspec(k):
     mods = ''
     parts = k.split('+')
@@ -163,11 +182,10 @@ def close_window(app, secs=40):
             return True, seen
         if not seen and time.time() > end - secs + 6:
             seen = 'windows %s; message boxes: %s' % ([x[1] for x in windows()], screen_text('close-%s' % app))
-            if re.search(r'(?i)close the window anyway', seen):
-                for wid, _t, _p in windows():
-                    if win32gui.GetClassName(int(wid)) == '#32770':
-                        key('y', wid=wid)
-                seen = 'answered Yes to "More than one document is open. Close the window anyway?"'
+            # the upstream "More than one document is open. Close the window
+            # anyway?" question (a Yes / No box of the application): Yes
+            if press_button('Yes', title_rx=r'Secure Office Suite'):
+                seen = 'answered Yes to the application\'s Yes / No question on closing (%s)' % seen
         time.sleep(0.5)
     return False, seen
 

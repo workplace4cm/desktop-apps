@@ -772,7 +772,8 @@ def main():
     a = ap.parse_args()
     sos.OUT = a.out
     os.makedirs(a.out, exist_ok=True)
-    docs = os.path.join(os.path.expanduser('~/Documents'), 'sos-regression')
+    # native separators: the applications record paths that way
+    docs = os.path.normpath(os.path.join(os.path.expanduser('~/Documents'), 'sos-regression'))
     shutil.rmtree(docs, ignore_errors=True)
     os.makedirs(docs)
     log('DevTools switch in', sos.enable_devtools(), '; marker', MARK)
