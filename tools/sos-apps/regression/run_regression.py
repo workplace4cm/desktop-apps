@@ -683,6 +683,17 @@ def main():
     os.makedirs(docs)
     log('DevTools switch in', sos.enable_devtools(), '; marker', MARK)
     try:
+        # preflight: without DevTools nothing below can run
+        sos.kill_all()
+        sos.launch('writer')
+        if not sos.wait_target(lambda t: True, 90):
+            log('no DevTools targets; listening sockets:', sos.sh('ss', '-ltnp'))
+            log('processes:', sos.sh('ps', '-o', 'pid,args', '-u', str(os.getuid())))
+            log('settings.xml:', open(os.path.join(sos.DATA, 'data', 'settings.xml')).read() if os.path.exists(os.path.join(sos.DATA, 'data', 'settings.xml')) else 'none')
+            record('setup', 'DevTools', 'all', 'FAIL', 'the test cannot reach the applications')
+            return
+        log('targets:', [(t['type'], t['url']) for t in cdp.targets()])
+        sos.kill_all()
         if a.only in (None, 'functional'):
             for app in a.apps.split(','):
                 functional(app, os.path.join(docs, app))
