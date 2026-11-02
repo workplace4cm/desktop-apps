@@ -115,6 +115,15 @@ function Wait-Window([string]$re, [int]$secs = 150) {
 function Show-Windows {
     [SosWin]::Windows() | Where-Object { $_ -match 'EuroOffice|Secure Office' } | ForEach-Object { Write-Host "    window: $_" }
 }
+# why an application is gone: its processes and Windows' crash reports
+function Show-Crashes {
+    Get-CimInstance Win32_Process -Filter "Name='DesktopEditors.exe'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -notmatch '--type=' } |
+        ForEach-Object { Write-Host "    process: $($_.ProcessId) $($_.CommandLine)" }
+    Get-WinEvent -FilterHashtable @{ LogName = 'Application'; Id = 1000, 1001, 1002; StartTime = (Get-Date).AddMinutes(-15) } -ErrorAction SilentlyContinue |
+        Where-Object { $_.Message -match 'DesktopEditors|editors_helper' } | Select-Object -First 4 |
+        ForEach-Object { Write-Host "    event $($_.Id) $($_.TimeCreated): $(($_.Message -split "`n" | Select-Object -First 8) -join ' | ')" }
+}
 function Close-Apps {
     Get-Process DesktopEditors, editors -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
     for ($i = 0; $i -lt 30 -and (Get-Process DesktopEditors, editors -ErrorAction SilentlyContinue); $i++) { Start-Sleep 1 }
@@ -166,6 +175,7 @@ function Expect-Document([string]$file, [string]$how) {
     } else {
         Fail "$([IO.Path]::GetFileName($file)) ($how) did not open in $name"
         Show-Windows
+        Show-Crashes
     }
 }
 
@@ -308,6 +318,13 @@ foreach ($ext in $Exts) {
     } else {
         Start-Process -FilePath $f
         Expect-Document $f 'double-click'
+        if ($ext -eq '.csv') {
+            # CSV asks for its import options first; the application must stay up meanwhile
+            $w = Wait-Window ('^\*?Sample\.csv( .*)? - ' + [regex]::Escape($Apps.sheet) + '$') 5
+            Start-Sleep 12
+            if ($w -and (Get-Process -Id $w.pid -ErrorAction SilentlyContinue)) { Pass "EuroOffice Sheet still running 12 s after opening Sample.csv (pid $($w.pid))" }
+            else { Fail "EuroOffice Sheet (pid $($w.pid)) quit within 12 s of opening Sample.csv"; Show-Windows; Show-Crashes }
+        }
     }
 }
 Save-Screen '4-double-click'
