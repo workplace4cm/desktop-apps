@@ -77,7 +77,17 @@ def wait_window(regex, secs=60, exclude=()):
 
 def screenshot(name):
     os.makedirs(os.path.join(OUT, 'shots'), exist_ok=True)
-    sh('import', '-window', 'root', os.path.join(OUT, 'shots', name + '.png'), timeout=20)
+    f = os.path.join(OUT, 'shots', name + '.png')
+    sh('import', '-window', 'root', f, timeout=20)
+    return f
+
+
+def screen_text(name):
+    """what the screen says (OCR), for windows the DevTools can't see:
+    Qt and GTK message boxes"""
+    f = screenshot(name)
+    txt = sh('tesseract', f, '-', '--psm', '3', timeout=60)
+    return ' '.join(txt.split())[:400]
 
 
 def key(*keys, wid=None):
@@ -175,17 +185,20 @@ def main_window(app):
 
 
 def close_window(app, secs=40):
-    """close the application the way a user does (Alt+F4 on its window);
-    True when its process ended"""
+    """close the application the way a user does (Alt+F4 on its window).
+    Returns (closed, what was on screen when it did not close)."""
     w = main_window(app)
     if w:
         key('alt+F4', wid=w[0])
     end = time.time() + secs
+    seen = ''
     while time.time() < end:
         if not app_pids(app):
-            return True
+            return True, seen
+        if not seen and time.time() > end - secs + 6:
+            seen = 'windows %s; screen: %s' % ([x[1] for x in windows()], screen_text('close-%s' % app))
         time.sleep(0.5)
-    return False
+    return False, seen
 
 
 # -- pages ----------------------------------------------------------------------
@@ -241,31 +254,40 @@ class Editor:
             return ''
 
     def wait_ready(self, secs=150):
+        """True once the document is loaded. Questions the editor asks while
+        opening (TXT encoding, CSV options) are answered with their default
+        and kept in self.prompts; an error message ends the wait."""
+        self.prompts = getattr(self, 'prompts', [])
         end = time.time() + secs
         while time.time() < end:
             st = self.js("return api ? !!api.isDocumentLoadComplete : null")
             if st:
                 time.sleep(1.5)
                 return True
-            err = self.alerts()
-            if err:
-                return False
+            al = self.alerts()
+            if al:
+                self.prompts.append(al[0])
+                if len(self.prompts) > 3 or re.search(r'(?i)error|cannot|can.t|failed|damaged', al[0]):
+                    return False
+                self.answer_alert()
+                time.sleep(1.5)
+                continue
             time.sleep(1)
         return False
 
     def alerts(self):
         """texts of visible modal windows in the editor"""
         return self.page.try_eval(
-            "Array.from(document.querySelectorAll('.asc-window')).filter(e=>e.offsetParent!==null&&getComputedStyle(e).display!=='none')"
+            "Array.from(document.querySelectorAll('.asc-window')).filter(e=>(e.getClientRects().length>0&&getComputedStyle(e).visibility!=='hidden')&&getComputedStyle(e).display!=='none')"
             ".map(e=>(e.querySelector('.title')||{}).textContent+': '+((e.querySelector('.body')||e).innerText||'').trim().slice(0,300))",
             self.frame, default=[]) or []
 
     def answer_alert(self, prefer=('OK', 'Yes', 'Save', 'Continue')):
         """press a button of the visible modal window; returns its text"""
         return self.page.try_eval("""(function(prefer){
-            var w=Array.from(document.querySelectorAll('.asc-window')).filter(e=>e.offsetParent!==null)[0];
+            var w=Array.from(document.querySelectorAll('.asc-window')).filter(e=>(e.getClientRects().length>0&&getComputedStyle(e).visibility!=='hidden'))[0];
             if(!w) return null;
-            var bs=Array.from(w.querySelectorAll('.footer button, button.btn')).filter(b=>b.offsetParent!==null);
+            var bs=Array.from(w.querySelectorAll('.footer button, button.btn')).filter(b=>(b.getClientRects().length>0&&getComputedStyle(b).visibility!=='hidden'));
             var b=null;
             for (var p of prefer){ b=bs.find(x=>x.innerText.trim().toLowerCase()===p.toLowerCase()); if(b) break; }
             b=b||bs.find(x=>x.classList.contains('primary'))||bs[0];
@@ -282,7 +304,7 @@ class Editor:
     def rect(self, selector):
         off = self.page.try_eval("(function(){var f=document.querySelector('iframe');if(!f)return [0,0];"
                                  "var r=f.getBoundingClientRect();return [r.left,r.top]})()", default=[0, 0]) or [0, 0]
-        r = self.page.try_eval("(function(s){var e=document.querySelector(s);if(!e||e.offsetParent===null)return null;"
+        r = self.page.try_eval("(function(s){var e=document.querySelector(s);if(!e||!(e.getClientRects().length>0&&getComputedStyle(e).visibility!=='hidden'))return null;"
                                "var r=e.getBoundingClientRect();return [r.left,r.top,r.width,r.height]})(%s)" % json.dumps(selector),
                                self.frame)
         if not r or r[2] == 0:
@@ -304,7 +326,7 @@ class Editor:
         return 'dom' if ok else None
 
     def visible(self, selector):
-        return bool(self.page.try_eval("(function(s){var e=document.querySelector(s);return !!e&&e.offsetParent!==null})(%s)"
+        return bool(self.page.try_eval("(function(s){var e=document.querySelector(s);return !!e&&(e.getClientRects().length>0&&getComputedStyle(e).visibility!=='hidden')})(%s)"
                                        % json.dumps(selector), self.frame))
 
     def focus_canvas(self):
@@ -341,7 +363,7 @@ class StartPage:
         return self.page.try_eval(expr, default=default)
 
     def rect(self, selector):
-        return self.page.try_eval("(function(s){var e=document.querySelector(s);if(!e||e.offsetParent===null)return null;"
+        return self.page.try_eval("(function(s){var e=document.querySelector(s);if(!e||!(e.getClientRects().length>0&&getComputedStyle(e).visibility!=='hidden'))return null;"
                                   "e.scrollIntoView({block:'center'});"
                                   "var r=e.getBoundingClientRect();return [r.left+r.width/2,r.top+r.height/2,r.width]})(%s)"
                                   % json.dumps(selector))

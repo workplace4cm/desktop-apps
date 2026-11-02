@@ -67,7 +67,18 @@ def contains(path, marker):
             return m in f.read()
     with open(path, 'rb') as f:
         data = f.read()
+    if k == 'rtf':
+        return marker in rtf_text(data.decode('latin-1'))
     return m in data or marker.encode('utf-16-le') in data
+
+
+def rtf_text(rtf):
+    """the visible text of an RTF document, roughly: escapes decoded,
+    control words and groups' braces dropped"""
+    rtf = re.sub(r'\\u(-?\d+)\??', lambda m: chr(int(m.group(1)) % 65536), rtf)
+    rtf = re.sub(r"\\'([0-9a-fA-F]{2})", lambda m: chr(int(m.group(1), 16)), rtf)
+    rtf = re.sub(r'\\[a-zA-Z]+-?\d* ?', '', rtf)
+    return re.sub(r'[{}\r\n]', '', rtf)
 
 
 def slides(path):

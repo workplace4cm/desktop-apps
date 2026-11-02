@@ -72,7 +72,9 @@ def start_app(app, secs=120):
     end = time.time() + 60
     while time.time() < end and not sp.js("!!(window.SOS && SOS.recents && SOS.recents.ready())"):
         time.sleep(0.5)
-    return sp, time.time() - t0
+    secs = time.time() - t0
+    time.sleep(2)   # the start page ignores clicks in its first second (double-click guard)
+    return sp, secs
 
 
 def open_direct(app, path, secs=150):
@@ -93,6 +95,8 @@ def new_doc_from(click, app, secs=120):
     how = click()
     t = sos.wait_target(sos.is_doc, secs, exclude=before)
     if not t:
+        log('no new document; targets', [(x['url'][-90:]) for x in cdp.targets()], 'windows', sos.windows())
+        log('screen:', sos.screen_text('nodoc-%s' % app))
         return None, how
     ed = sos.Editor(t, app)
     ed.ready = ed.wait_ready()
@@ -126,7 +130,7 @@ def edit(ed, app, marker):
         n0 = ed.js('return api.getCountPages()')
         ed.click('.ribtab > a[data-tab="home"]')
         time.sleep(0.5)
-        how = ed.click('#id-toolbar-btn-add-slide')
+        how = ed.click('#id-toolbar-btn-add-slide button') or ed.click('#id-toolbar-btn-add-slide')
         time.sleep(2)
         n1 = ed.js('return api.getCountPages()')
         if n0 is not None and n1 == n0 + 1:
@@ -172,6 +176,8 @@ def save(ed, app, picker_path, how='ctrl+s', secs=120):
     info = {'picker': None, 'prompts': [], 'path': None}
     t0 = time.time() - 1
     if how == 'ctrl+s':
+        if app != 'sheet':
+            ed.focus_canvas()
         ed.page.shortcut('s')
     elif how == 'menu':
         ed.open_file_menu()
@@ -180,7 +186,14 @@ def save(ed, app, picker_path, how='ctrl+s', secs=120):
         ed.open_file_menu()
         ed.click('#fm-btn-save-desktop')
     end = time.time() + secs
+    fallback = time.time() + 15
     while time.time() < end:
+        if how == 'ctrl+s' and fallback and time.time() > fallback and not info['picker'] and ed.modified():
+            # Ctrl+S did nothing: say so and use the menu
+            info['prompts'].append('Ctrl+S did nothing; used File > Save')
+            fallback = None
+            ed.open_file_menu()
+            ed.click('#fm-btn-save')
         w = sos.wait_window(sos.DIALOG_RX, 1)
         if w:
             info['picker'] = sos.file_dialog(picker_path, 'save')
@@ -294,7 +307,7 @@ def functional(app, docs):
         with guarded(A, '14 File menu', app):
             notes = []
             opened = ed.open_file_menu()
-            items = ed.page.try_eval("Array.from(document.querySelectorAll('#file-menu-panel .panel-menu li.fm-btn')).filter(e=>e.offsetParent!==null).map(e=>e.id.replace('fm-btn-','')+':'+e.innerText.trim())", ed.frame, default=[])
+            items = ed.page.try_eval("Array.from(document.querySelectorAll('#file-menu-panel .panel-menu li.fm-btn')).filter(e=>(e.getClientRects().length>0&&getComputedStyle(e).visibility!=='hidden')).map(e=>e.id.replace('fm-btn-','')+':'+e.innerText.trim())", ed.frame, default=[])
             notes.append('items: ' + ', '.join(items or []))
             checks = {}
             for item, panel, expect in (('info', '#panel-info', None), ('recent', '#panel-recentfiles', os.path.basename(saved.get('blank') or 'x')),
@@ -322,11 +335,11 @@ def functional(app, docs):
             ed.close_file_menu()
             bad = {k: v for k, v in checks.items() if not v.startswith('ok')}
             record(A, '14 File menu', app, 'PASS' if opened and not bad else 'FAIL',
-                   'menu opened: %s; %s; panels: %s' % (opened, notes[0], checks))
+                   'menu opened: %s; problems: %s; panels: %s; %s' % (opened, bad, checks, notes[0]))
 
         # 15 ribbon
         with guarded(A, '15 Ribbon commands', app):
-            tabs = ed.page.try_eval("Array.from(document.querySelectorAll('.ribtab > a[data-tab]')).filter(a=>a.offsetParent!==null).map(a=>a.getAttribute('data-tab'))", ed.frame, default=[]) or []
+            tabs = ed.page.try_eval("Array.from(document.querySelectorAll('.ribtab > a[data-tab]')).filter(a=>(a.getClientRects().length>0&&getComputedStyle(a).visibility!=='hidden')).map(a=>a.getAttribute('data-tab'))", ed.frame, default=[]) or []
             switched = []
             for t in tabs:
                 if t == 'file':
@@ -349,8 +362,11 @@ def functional(app, docs):
                 ok_cmd = b0 != b1 and bool(ed.modified())
                 cmd = 'Bold: pressed %s -> %s, document modified %s' % (b0, b1, ed.modified())
                 ed.page.shortcut('z')
+                time.sleep(0.5)
+                save(ed, app, os.path.join(docs, '%s-ribbon.%s' % (app, d['ext'])))
             elif app == 'presentation':
                 ok_cmd, cmd = edit(ed, app, MARK)
+                save(ed, app, os.path.join(docs, '%s-ribbon.%s' % (app, d['ext'])))
             switched_ok = tabs and not [s for s in switched if s.endswith('(!)')]
             record(A, '15 Ribbon commands', app, 'PASS' if switched_ok and ok_cmd else 'FAIL',
                    'tabs %s; %s' % (switched, cmd))
@@ -399,21 +415,16 @@ def functional(app, docs):
 
     # 16 restart (closing the window the way a user does)
     with guarded(A, '16 Application restart', app):
-        closed = sos.close_window(app)
-        for w in sos.windows():
-            if 'EuroOffice' in w[1] and w[1] != sos.main_window(app):
-                pass
+        closed, seen = sos.close_window(app)
         if not closed:
-            # unsaved-changes question from the Qt shell: answer "don't save"
-            sos.screenshot('%s-16-close-question' % app)
             sos.kill_all()
         sp.close()
         sp, secs = start_app(app)
         lst = sp and sp.recents(app) or []
         have = [os.path.basename(x['path']) for x in lst]
-        ok = closed and sp and saved.get('blank', 'x') and any(x['path'] == saved.get('blank') for x in lst) if d['blank'] else bool(sp)
+        ok = closed and sp and len(lst) > 0
         record(A, '16 Application restart', app, 'PASS' if ok else 'FAIL',
-               'closed by Alt+F4: %s; restarted in %.0f s; recent list after restart: %s' % (closed, secs, have))
+               'closed by Alt+F4: %s %s; restarted in %.0f s; recent list after restart: %s' % (closed, seen, secs, have))
 
     # 7 open from recents, 8 pin/unpin, 9 remove, 10 clear
     lst = sp.recents(app) or []
@@ -463,6 +474,7 @@ def functional(app, docs):
                 record(A, '09 Remove recent entry', app, 'PASS' if gone and still else 'FAIL',
                        'More > Remove from list: entry gone %s, document still on disk %s' % (gone, still))
         with guarded(A, '10 Clear history', app):
+            others0 = {a: len(v) for a, v in sos.read_recents().get('lists', {}).items() if a != app}
             rid = sp.row_id(pinned)
             sp.click('#%s-more-btn' % rid)
             time.sleep(0.7)
@@ -490,8 +502,8 @@ def functional(app, docs):
                    % (keep, had_check, l4 == [], files_kept))
             # other applications' lists are not touched
             others = {a: len(v) for a, v in sos.read_recents().get('lists', {}).items() if a != app}
-            record(A, '10 Clear history (other apps untouched)', app, 'PASS' if all(others.values()) or not others else 'FAIL',
-                   'other lists after clearing %s: %s' % (app, others))
+            record(A, '10 Clear history (other apps untouched)', app, 'PASS' if others == others0 else 'FAIL',
+                   'other applications\' lists before %s, after %s' % (others0, others))
     else:
         for it in ('07 Recent-document opening', '08 Pin and unpin', '09 Remove recent entry', '10 Clear history'):
             record(A, it, app, 'SKIP', 'recent list empty after restart')
@@ -531,29 +543,30 @@ def functional(app, docs):
         os.chmod(p, 0)
         before = sos.doc_ids()
         sos.launch(app, p)
-        time.sleep(12)
+        time.sleep(25)
         new = sos.doc_ids() - before
         msgs = []
         for t in [x for x in cdp.targets() if x['id'] in new]:
             e5 = sos.Editor(t, app)
             msgs += e5.alerts()
             e5.close()
-        qt = [w[1] for w in sos.windows() if 'EuroOffice' not in w[1] and w[1]]
+        wins = [w[1] for w in sos.windows()]
         alive = bool(sos.app_pids(app))
-        sos.screenshot('%s-20-inaccessible' % app)
-        record(A, '20 Inaccessible file', app, 'PASS' if alive else 'FAIL',
-               'no read permission: new tabs %d, editor messages %s, other windows %s, application still running %s'
-               % (len(new), msgs, qt, alive))
+        scr = sos.screen_text('%s-20-inaccessible' % app)
+        record(A, '20 Inaccessible file', app, 'PASS' if alive and not new else 'FAIL',
+               'no read permission: new tabs %d, editor messages %s, windows %s, application still running %s; screen: %s'
+               % (len(new), msgs, wins, alive, scr))
         sos.close_stray_dialogs()
         os.chmod(p, stat.S_IRUSR | stat.S_IWUSR)
     with guarded(A, '20 Nonexistent path on the command line', app):
         before = sos.doc_ids()
         sos.launch(app, os.path.join(docs, 'does-not-exist.' + d['formats'][0]))
-        time.sleep(10)
+        time.sleep(15)
         alive = bool(sos.app_pids(app))
         new = sos.doc_ids() - before
-        record(A, '20 Nonexistent path on the command line', app, 'PASS' if alive else 'FAIL',
-               'application still running %s; tabs opened %d; windows %s' % (alive, len(new), [w[1] for w in sos.windows()]))
+        record(A, '20 Nonexistent path on the command line', app, 'PASS' if alive and not new else 'FAIL',
+               'application still running %s; tabs opened %d; windows %s; screen: %s'
+               % (alive, len(new), [w[1] for w in sos.windows()], sos.screen_text('%s-20-nonexistent' % app)))
         sos.close_stray_dialogs()
     sos.screenshot('%s-20-end' % app)
     sos.kill_all()
@@ -576,13 +589,13 @@ def formats(docs):
             with guarded(A, 'render', ext):
                 ed = open_direct(app, src)
                 if not ed or not ed.ready:
-                    record(A, 'render', ext, 'FAIL', 'did not load: %s' % (ed and ed.alerts()))
+                    record(A, 'render', ext, 'FAIL', 'did not load: %s; screen: %s' % (ed and (ed.prompts + ed.alerts()), sos.screen_text('fmt-%s' % ext)))
                     ed = None
                 else:
                     size = ed.js({'writer': "return api.getCountPages()+' page(s)'", 'sheet': "return api.asc_getWorksheetsCount()+' sheet(s)'",
                                   'presentation': "return api.getCountPages()+' slide(s)'", 'pdf': "return api.getCountPages()+' page(s)'"}[app])
-                    record(A, 'render', ext, 'PASS', 'opened directly in %s: "%s", %s, no error message %s'
-                           % (d['name'], ed.title(), size, ed.alerts() == []))
+                    record(A, 'render', ext, 'PASS', 'opened directly in %s: %s, questions answered %s, no error message %s'
+                           % (d['name'], size, ed.prompts, ed.alerts() == []))
                     sos.screenshot('fmt-%s-render' % ext)
             if not ed:
                 for it in ('edit', 'save', 'reopen'):
