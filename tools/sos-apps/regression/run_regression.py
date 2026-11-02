@@ -528,9 +528,12 @@ def functional(app, docs):
         ed4 = open_direct(app, p)
         ok_open = ed4 and ed4.ready
         time.sleep(2)
+        # Windows doesn't let a file be deleted while it is open: the
+        # application is closed, the file deleted, the application started
+        sos.kill_all()
+        sp.close()
         os.remove(p)
-        sp.page.send('Page.reload')
-        time.sleep(4)
+        sp, _ = start_app(app)
         sp.js("SOS.recents.check()")
         lst = sp.wait_recents(app, lambda l: any(x['path'] == p and x.get('status') == 'missing' for x in l), 30) or []
         e = next((x for x in lst if x['path'] == p), None)

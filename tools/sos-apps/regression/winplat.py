@@ -172,28 +172,71 @@ def close_window(app, secs=40):
     return False, seen
 
 
+def _children(h):
+    out = []
+
+    def cb(c, _):
+        out.append(c)
+        return True
+    try:
+        win32gui.EnumChildWindows(h, cb, None)
+    except Exception:
+        pass
+    return out
+
+
+def _name_edit(h):
+    """the "File name" box of a common file dialog (control 1148, or 1152 in old ones)"""
+    for c in _children(h):
+        try:
+            if win32gui.GetDlgCtrlID(c) in (1148, 1152):
+                if win32gui.GetClassName(c) == 'Edit':
+                    return c
+                for e in _children(c):
+                    if win32gui.GetClassName(e) == 'Edit':
+                        return e
+        except Exception:
+            pass
+    return None
+
+
 def file_dialog(path, mode, secs=40):
-    """the Windows file picker: type the full path into "File name" """
+    """the Windows file picker: put the full path into "File name" and
+    press Save / Open, by window messages so focus doesn't matter"""
     import sos
     w = sos.wait_window(sos.DIALOG_RX, secs)
     if not w:
         return None
     wid, title, _ = w
-    time.sleep(1.0)
-    activate(wid)
-    key('alt+n')
-    time.sleep(0.3)
-    key('ctrl+a')
-    xtype(path)
-    time.sleep(0.5)
-    key('Return')
-    for _ in range(20):
+    h = int(wid)
+    time.sleep(1.5)
+    path = os.path.normpath(path)
+    edit = None
+    for _ in range(10):
+        edit = _name_edit(h)
+        if edit:
+            break
+        time.sleep(0.5)
+    if edit:
+        win32gui.SendMessage(edit, win32con.WM_SETTEXT, 0, path)
+        time.sleep(0.3)
+        win32gui.PostMessage(h, win32con.WM_COMMAND, win32con.IDOK, 0)
+    else:
+        activate(wid)
+        key('alt+n')
+        time.sleep(0.3)
+        key('ctrl+a')
+        xtype(path)
+        time.sleep(0.5)
+        key('Return')
+    for _ in range(30):
         if wid not in [x[0] for x in windows()]:
             break
         time.sleep(0.5)
     else:
-        key('Escape', wid=wid)
-        return title + ' (did not close)'
+        txt = screen_text('picker-stuck')
+        win32gui.PostMessage(h, win32con.WM_CLOSE, 0, 0)
+        return title + ' (did not close; name box %s; %s)' % (bool(edit), txt)
     return title
 
 
