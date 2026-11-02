@@ -197,6 +197,13 @@ def close_window(app, secs=40):
             return True, seen
         if not seen and time.time() > end - secs + 6:
             seen = 'windows %s; screen: %s' % ([x[1] for x in windows()], screen_text('close-%s' % app))
+            if re.search(r'(?i)close the window anyway', seen):
+                # the upstream question when several documents are open
+                # (Yes / No, focus on No): answer Yes
+                key('shift+Tab')
+                time.sleep(0.3)
+                key('Return')
+                seen = 'answered Yes to "More than one document is open. Close the window anyway?"'
         time.sleep(0.5)
     return False, seen
 
@@ -260,6 +267,10 @@ class Editor:
         self.prompts = getattr(self, 'prompts', [])
         end = time.time() + secs
         while time.time() < end:
+            k = self.editor_kind()
+            m = re.search(r'/apps/(\w+)/main/', k)
+            if m and '/apps/%s/' % m.group(1) != self.frame:
+                self.frame = '/apps/%s/' % m.group(1)
             st = self.js("return api ? !!api.isDocumentLoadComplete : null")
             if st:
                 time.sleep(1.5)

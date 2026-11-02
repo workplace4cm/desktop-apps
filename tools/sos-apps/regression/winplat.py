@@ -163,6 +163,11 @@ def close_window(app, secs=40):
             return True, seen
         if not seen and time.time() > end - secs + 6:
             seen = 'windows %s; message boxes: %s' % ([x[1] for x in windows()], screen_text('close-%s' % app))
+            if re.search(r'(?i)close the window anyway', seen):
+                for wid, _t, _p in windows():
+                    if win32gui.GetClassName(int(wid)) == '#32770':
+                        key('y', wid=wid)
+                seen = 'answered Yes to "More than one document is open. Close the window anyway?"'
         time.sleep(0.5)
     return False, seen
 

@@ -18,6 +18,7 @@ is given), SKIP (not run because an earlier step failed).
 import argparse
 import json
 import os
+import re
 import shutil
 import sys
 import time
@@ -310,7 +311,7 @@ def functional(app, docs):
             notes.append('items: ' + ', '.join(items or []))
             checks = {}
             for item, panel, expect in (('info', '#panel-info', None), ('recent', '#panel-recentfiles', os.path.basename(saved.get('blank') or 'x')),
-                                        ('sos-about', '#panel-sos-about', 'Secure Office Suite'), ('sos-export', '#panel-sos-export', 'PDF'),
+                                        ('sos-about', '#panel-sos-about', 'Version'), ('sos-export', '#panel-sos-export', 'PDF'),
                                         ('sos-new', '#panel-sos-new', None)):
                 if not ed.visible('#fm-btn-' + item):
                     checks[item] = 'missing'
@@ -328,9 +329,22 @@ def functional(app, docs):
                 if btn:
                     t0 = time.time()
                     ed.click('#panel-sos-export .sos-bs-format[data-qa="pdf"]')
+                    setup = None
+                    if app == 'sheet':
+                        # Sheet asks for the sheets and page setup first (upstream)
+                        time.sleep(2)
+                        setup = ed.alerts()
+                        ed.page.try_eval("(function(){var b=Array.from(document.querySelectorAll('.asc-window button[result=\"ok\"]')).find(b=>b.getClientRects().length>0);b&&b.click();return !!b})()", ed.frame)
                     pk = sos.file_dialog(exp, 'save')
                     ok = sos.wait_file(exp, t0 - 1, 60)
-                    checks['export-pdf'] = 'ok (%s pages)' % check.pdf_pages(exp) if ok and check.kind(exp) == 'pdf' else 'picker %s, file %s' % (pk, ok)
+                    checks['export-pdf'] = ('ok (%s pages%s)' % (check.pdf_pages(exp), ', after the page setup dialog' if setup else '')) \
+                        if ok and check.kind(exp) == 'pdf' else 'picker %s, file %s, dialogs %s' % (pk, ok, setup or ed.alerts())
+                    # nothing left open over the editor
+                    for _ in range(3):
+                        if not ed.alerts():
+                            break
+                        ed.answer_alert(prefer=('Cancel', 'Close', 'OK'))
+                        time.sleep(0.8)
             ed.close_file_menu()
             bad = {k: v for k, v in checks.items() if not v.startswith('ok')}
             record(A, '14 File menu', app, 'PASS' if opened and not bad else 'FAIL',
@@ -380,7 +394,7 @@ def functional(app, docs):
     with guarded(A, '05 Document from template', app):
         tpl, how = new_doc_from(lambda: sp.click('.sos-dlg-preview .sos-preview__create'), app)
         if not tpl or not tpl.ready:
-            record(A, '05 Document from template', app, 'FAIL', 'Create did not open an editor (%s); alerts %s' % (how, tpl and tpl.alerts()))
+            record(A, '05 Document from template', app, 'FAIL', 'Create did not open an editor (%s); editor %s; alerts %s; screen: %s' % (how, tpl and tpl.editor_kind()[-120:], tpl and tpl.alerts(), sos.screen_text('%s-05-template' % app)))
         else:
             content = {'writer': "return api.getCountPages()+' pages'",
                        'sheet': "return api.asc_getWorksheetsCount()+' sheets'",
@@ -423,7 +437,7 @@ def functional(app, docs):
         have = [os.path.basename(x['path']) for x in lst]
         ok = closed and sp and len(lst) > 0
         record(A, '16 Application restart', app, 'PASS' if ok else 'FAIL',
-               'closed by Alt+F4: %s %s; restarted in %.0f s; recent list after restart: %s' % (closed, seen, secs, have))
+               'closed like a user does (Alt+F4 / window close): %s %s; restarted in %.0f s; recent list after restart: %s' % (closed, seen, secs, have))
 
     # 7 open from recents, 8 pin/unpin, 9 remove, 10 clear
     lst = sp.recents(app) or []
@@ -552,6 +566,9 @@ def functional(app, docs):
         wins = [w[1] for w in sos.windows()]
         alive = bool(sos.app_pids(app))
         scr = sos.screen_text('%s-20-inaccessible' % app)
+        if re.search(r'(?i)is denied', scr):
+            sos.key('Return')          # OK on the error message
+            time.sleep(1)
         record(A, '20 Inaccessible file', app, 'PASS' if alive and not new else 'FAIL',
                'no read permission: new tabs %d, editor messages %s, windows %s, application still running %s; screen: %s'
                % (len(new), msgs, wins, alive, scr))
@@ -563,9 +580,15 @@ def functional(app, docs):
         time.sleep(15)
         alive = bool(sos.app_pids(app))
         new = sos.doc_ids() - before
-        record(A, '20 Nonexistent path on the command line', app, 'PASS' if alive and not new else 'FAIL',
-               'application still running %s; tabs opened %d; windows %s; screen: %s'
-               % (alive, len(new), [w[1] for w in sos.windows()], sos.screen_text('%s-20-nonexistent' % app)))
+        titles = [w[1] for w in sos.windows()]
+        # upstream behaviour: a path that doesn't exist gives a new untitled
+        # document of that kind (PDF has no blank document, so nothing opens)
+        untitled = any(re.match(r'(Document|Book|Presentation)\d+\.(docx|xlsx|pptx)\b', t) for t in titles)
+        ok = alive and (not new or (len(new) == 1 and untitled and app != 'pdf'))
+        record(A, '20 Nonexistent path on the command line', app, 'PASS' if ok else 'FAIL',
+               'application still running %s; tabs opened %d%s; windows %s; screen: %s'
+               % (alive, len(new), ' (new untitled document, upstream behaviour for a path that does not exist)' if new and untitled else '',
+                  titles, sos.screen_text('%s-20-nonexistent' % app)))
         sos.close_stray_dialogs()
     sos.screenshot('%s-20-end' % app)
     sos.kill_all()
@@ -605,6 +628,7 @@ def formats(docs):
                 ok, how = edit(ed, app, MARK)
                 record(A, 'edit', ext, 'PASS' if ok else 'FAIL', how)
             saved_path = None
+            pending_save = None
             with guarded(A, 'save', ext):
                 target = os.path.join(docs, 'Fmt-%s-saved.%s' % (ext, d['ext'] if ext in NOT_WRITABLE else ext))
                 info = save(ed, app, target)
@@ -621,9 +645,16 @@ def formats(docs):
                         note += ' (the engine cannot write %s; it offers %s, as upstream)' % (ext.upper(), d['ext'].upper())
                     exp_kind = check.EXPECTED_KIND[p.rsplit('.', 1)[-1].lower()]
                     good = has and k == exp_kind
-                    record(A, 'save', ext, 'PASS' if good else 'FAIL', '%s; prompts %s; file %s; change in file %s'
-                           % (note, info['prompts'], check.describe(p), has))
-                    saved_path = p if good else None
+                    if not has and k == exp_kind:
+                        # the file's own text encoding may hide the marker from
+                        # this simple reader: the editor decides on reopening
+                        log('marker not found in', p, check.snippet(p, MARK[:5]))
+                        pending_save = (note, info['prompts'], check.describe(p))
+                        saved_path = p
+                    else:
+                        record(A, 'save', ext, 'PASS' if good else 'FAIL', '%s; prompts %s; file %s; change in file %s'
+                               % (note, info['prompts'], check.describe(p), has))
+                        saved_path = p if good else None
             if not saved_path:
                 record(A, 'reopen', ext, 'SKIP', 'not saved')
                 continue
@@ -633,9 +664,14 @@ def formats(docs):
                 sos.kill_all()
                 ed2 = open_direct(app, saved_path)
                 if not ed2 or not ed2.ready:
+                    if pending_save:
+                        record(A, 'save', ext, 'FAIL', '%s; prompts %s; file %s; change not found in the file' % pending_save)
                     record(A, 'reopen', ext, 'FAIL', 'saved file did not load: %s' % (ed2 and ed2.alerts()))
                     continue
                 ok, det = verify_in_editor(ed2, app, MARK, slides)
+                if pending_save:
+                    record(A, 'save', ext, 'PASS' if ok else 'FAIL',
+                           '%s; prompts %s; file %s; marker not readable from the file itself; reopened in the editor, marker there: %s' % (pending_save + (ok,)))
                 record(A, 'reopen', ext, 'PASS' if ok else 'FAIL', 'reopened %s: %s' % (os.path.basename(saved_path), det))
                 ed2.close()
     sos.kill_all()

@@ -106,3 +106,20 @@ def describe(path):
         return '%s, %d bytes' % (kind(path), os.path.getsize(path))
     except Exception as e:
         return str(e)
+
+
+def snippet(path, needle, width=80):
+    """where needle appears in the file (raw and, for RTF, decoded text)"""
+    try:
+        with open(path, 'rb') as f:
+            data = f.read().decode('latin-1')
+        out = []
+        i = data.find(needle)
+        out.append('raw: %r' % (data[max(0, i - width):i + width] if i >= 0 else None))
+        if kind(path) == 'rtf':
+            t = rtf_text(data)
+            j = t.find(needle)
+            out.append('text: %r' % (t[max(0, j - width):j + width] if j >= 0 else t[-width * 2:]))
+        return '; '.join(out)
+    except Exception as e:
+        return str(e)
