@@ -18,7 +18,8 @@
 #   2. clean install (or the previous build) with dpkg only, no network;
 #   3. each application opens a document of its own, so the user has
 #      documents, recent documents, settings and browser profiles;
-#   4. upgrade to the new package: version changes, every user file is kept
+#   4. upgrade to the new package: version grows (SOS_REQUIRE_NEWER=0 allows
+#      two builds of the same version, as before Phase 10), every user file is kept
 #      unchanged, the recent documents are still listed after each
 #      application has started again;
 #   5. uninstall (purge) keeps user data, reinstall offline brings back the
@@ -207,6 +208,8 @@ if [ -n "$OLD" ]; then
     echo "== upgrade"
     v0=$(dpkg-query -W -f '${Version}' "$PKG"); v1=$(dpkg-deb -f "$NEW" Version)
     if dpkg --compare-versions "$v1" gt "$v0"; then ok "the new package's version $v1 is newer than the installed $v0"
+    elif [ "$v1" = "$v0" ] && [ "${SOS_REQUIRE_NEWER:-1}" = 0 ]; then
+        echo "NOTE: both builds are version $v1 (built before versions grew per build); dpkg reinstalls it"
     else fail "the new package's version $v1 is not newer than the installed $v0: package managers would not offer it as an upgrade"; fi
     if install_offline "$NEW" upgrade; then ok "upgraded offline with dpkg"; else fail "upgrade failed"; tail -20 "$OUT/upgrade.log"; fi
     [ "$(dpkg-query -W -f '${Version}' "$PKG")" = "$v1" ] && ok "installed version is now $v1" || fail "installed version $(dpkg-query -W -f '${Version}' "$PKG")"

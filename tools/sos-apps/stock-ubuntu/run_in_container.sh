@@ -14,7 +14,7 @@ chmod a+r /tmp/*.deb
 Xvfb :99 -screen 0 1600x1000x24 >/dev/null 2>&1 & sleep 3
 cat /stock-manifest-name > "$OUT/stock-manifest.txt"; . /etc/os-release; echo "$PRETTY_NAME" >> "$OUT/stock-manifest.txt"
 as_tester() {
-    sudo -u tester -H env DISPLAY=:99 LIBGL_ALWAYS_SOFTWARE=1 QT_QPA_PLATFORM=xcb NO_AT_BRIDGE=1 \
+    sudo -u tester -H env SOS_REQUIRE_NEWER=${SOS_REQUIRE_NEWER:-1} DISPLAY=:99 LIBGL_ALWAYS_SOFTWARE=1 QT_QPA_PLATFORM=xcb NO_AT_BRIDGE=1 \
         dbus-run-session -- bash -c 'openbox >/dev/null 2>&1 & sleep 2; xdg-user-dirs-update; "$@"' _ "$@"
 }
 status=0
