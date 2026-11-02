@@ -387,10 +387,16 @@ def functional(app, docs):
 
     # 4 + 5 template
     with guarded(A, '04 Template selection', app):
-        sp.click('.sos-card--template')
-        time.sleep(1.5)
-        prev = sp.js("(function(){var d=document.querySelector('.sos-dlg-preview');return d&&d.open?{name:(d.querySelector('.sos-preview__name')||{}).textContent,meta:(d.querySelector('.sos-preview__meta')||{}).innerText}:null})()")
-        record(A, '04 Template selection', app, 'PASS' if prev else 'FAIL', 'first template card opened the preview: %s' % prev)
+        prev, tries, hows = None, 0, []
+        while not prev and tries < 2:
+            # the start page ignores a click in the second after another one
+            # (double-click guard), so a second click is what a user does
+            tries += 1
+            hows.append(sp.click('.sos-card--template'))
+            time.sleep(1.5)
+            prev = sp.js("(function(){var d=document.querySelector('.sos-dlg-preview');return d&&d.open?{name:(d.querySelector('.sos-preview__name')||{}).textContent,meta:(d.querySelector('.sos-preview__meta')||{}).innerText}:null})()")
+        record(A, '04 Template selection', app, 'PASS' if prev else 'FAIL', 'first template card opened the preview%s (%s): %s'
+               % (' on the second click' if tries > 1 else '', ', '.join(map(str, hows)), prev))
     with guarded(A, '05 Document from template', app):
         tpl, how = new_doc_from(lambda: sp.click('.sos-dlg-preview .sos-preview__create'), app)
         if not tpl or not tpl.ready:
