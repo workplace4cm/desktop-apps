@@ -114,13 +114,10 @@ start_app() {
     fi
 }
 
-# each sample document is in the recent documents of its application
-check_recents() {   # $1 = when
-    local app f
-    if [ ! -s "$RECENTS" ]; then fail "no $RECENTS ($1)"; return; fi
-    for app in $APPS; do
-        f=$(sample_of "$app")
-        if python3 - "$RECENTS" "$DOCS/$f" "$app" <<'EOF'
+# is the application's sample document in its recent documents? $1 = app
+in_recents() {
+    [ -s "$RECENTS" ] || return 1
+    python3 - "$RECENTS" "$DOCS/$(sample_of "$1")" "$1" <<'EOF'
 import json, os, sys
 store, path, app = sys.argv[1], sys.argv[2], sys.argv[3]
 d = json.load(open(store))
@@ -137,7 +134,25 @@ hit = [e for e in entries(d) if os.path.normpath(str(e.get('path', ''))) == os.p
        and e.get('app', app) == app and not e.get('removed')]
 sys.exit(0 if hit else 1)
 EOF
-        then ok "$f is in the $app recent documents ($1)"; else fail "$f is not in the $app recent documents ($1)"; fi
+}
+
+# each sample document is in the recent documents of its application
+check_recents() {   # $1 = when
+    local app f
+    if [ ! -s "$RECENTS" ]; then fail "no $RECENTS ($1)"; return; fi
+    for app in $APPS; do
+        f=$(sample_of "$app")
+        if in_recents "$app"; then ok "$f is in the $app recent documents ($1)"; else fail "$f is not in the $app recent documents ($1)"; fi
+    done
+}
+
+# An application records a document once the editor has loaded it, a little
+# after its window title shows the name. Give each one up to 60 s before the
+# applications are closed, as a user would.
+wait_recents() {
+    local app
+    for app in $APPS; do
+        for _ in $(seq 60); do in_recents "$app" && break; sleep 1; done
     done
 }
 
@@ -194,7 +209,7 @@ for app in $APPS; do
     open_document "$app" "$( [ -n "$OLD" ] && echo "previous build" || echo "first use")"
 done
 shot 3-documents
-sleep 3
+wait_recents
 close_apps
 check_recents "before the upgrade"
 mkdir -p "$DATA" "$CONF"

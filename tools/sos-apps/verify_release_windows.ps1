@@ -155,14 +155,28 @@ function RecentsFile {
     }
     return $null
 }
+function In-Recents([string]$app) {
+    $file = RecentsFile
+    if (-not $file) { return $false }
+    $text = Get-Content $file -Raw -ErrorAction SilentlyContinue
+    if (-not $text) { return $false }
+    $p = (Join-Path $Docs $SampleOf[$app]) -replace '\\', '/'
+    # paths are JSON strings: C:\\Users\\... or C:/Users/...
+    return ($text -replace '\\\\', '/' -replace '\\', '/').ToLower().Contains($p.ToLower())
+}
+# An application records a document once the editor has loaded it, a little
+# after its window title shows the name. Give each one up to 60 s before the
+# applications are closed, as a user would.
+function Wait-Recents {
+    foreach ($app in $Apps.Keys) {
+        for ($i = 0; $i -lt 60 -and -not (In-Recents $app); $i++) { Start-Sleep 1 }
+    }
+}
 function Check-Recents([string]$when) {
     $file = RecentsFile
     if (-not $file) { Fail "no sos-recents.json ($when)"; return }
-    $text = Get-Content $file -Raw
     foreach ($app in $Apps.Keys) {
-        $p = (Join-Path $Docs $SampleOf[$app]) -replace '\\', '/'
-        # paths are JSON strings: C:\\Users\\... or C:/Users/...
-        $found = ($text -replace '\\\\', '/' -replace '\\', '/').ToLower().Contains($p.ToLower())
+        $found = In-Recents $app
         if ($found) { Pass "$($SampleOf[$app]) is in the $app recent documents ($when)" } else { Fail "$($SampleOf[$app]) is not in the $app recent documents ($when)" }
     }
 }
@@ -237,7 +251,7 @@ Check-Installed 'after install'
 Write-Host "== use"
 foreach ($app in $Apps.Keys) { Open-Document $app $(if ($Previous) { 'previous build' } else { 'first use' }) }
 Save-Screen '3-documents'
-Start-Sleep 3
+Wait-Recents
 Close-Apps
 Check-Recents 'before the upgrade'
 New-Item -ItemType Directory -Force -Path (Join-Path $UserData 'DesktopEditors') | Out-Null
