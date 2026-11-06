@@ -89,6 +89,12 @@ if ($Target -notlike "*update") {
 
     Write-Host "Version: $((Get-Item $VCRedist).VersionInfo.ProductVersion)"
     if (-not (Get-Item $VCRedist).VersionInfo.ProductVersion) { throw }
+    # setup runs it as administrator: only Microsoft's own, untouched file
+    $VCRedistSig = Get-AuthenticodeSignature $VCRedist
+    if ($VCRedistSig.Status -ne 'Valid' -or `
+        $VCRedistSig.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') {
+        throw "$VCRedist is not validly signed by Microsoft ($($VCRedistSig.Status))"
+    }
 }
 
 ####

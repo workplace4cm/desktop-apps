@@ -152,6 +152,13 @@ begin
   appPath := ExpandConstant('{app}');
   if ReadBinFile(appPath + '\unins000.bin', files) then begin
     for i := 0 to files.Count - 1 do begin
+      // the uninstaller runs as administrator: only names inside the
+      // application folder, never "..\" or another drive
+      if (Pos('..', files[i]) > 0) or (Pos(':', files[i]) > 0) or
+          (Copy(files[i], 1, 1) <> '\') or (Copy(files[i], 1, 2) = '\\') then begin
+        Log('Not removing ' + files[i] + ': not inside the application folder');
+        continue;
+      end;
       if DeleteFile(appPath + files[i]) then begin
         path := ExtractFileDir(files[i]);
         while (path <> '\') do begin
@@ -1045,13 +1052,11 @@ var
 begin
   if CurUninstallStep = usUninstall then
   begin
-    GetWindowsVersionEx(version);
-    if (version.Major > 6) or ((version.Major = 6) and (version.Minor >= 1)) then begin
-      // No --remove-jump-list: this build has no projicons helper, so
-      // {#iconsExe} is the editor itself and would open a window and stop
-      // the uninstall until someone closed it.
-      Exec(ExpandConstant('{app}\updatesvc.exe'), '--delete', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
-    end;
+    // No --remove-jump-list: this build has no projicons helper, so
+    // {#iconsExe} is the editor itself and would open a window and stop
+    // the uninstall until someone closed it. And no "updatesvc.exe --delete":
+    // Secure Office Suite installs no update service, and the uninstaller
+    // (running as administrator) must not start a program it did not install.
 
     // the file types go back to the applications that had them, before
     // the settings below (which remember those) can be cleared
@@ -1103,6 +1108,51 @@ begin
   end;
 end;
 
+// The application folder must not be writable by ordinary users: setup and
+// the uninstaller run programs from it as administrator, and everyone runs
+// its DLLs. Program Files already protects it. A folder elsewhere (a /DIR=
+// or a folder picked on the Folder page, such as D:\Apps\...) would inherit
+// "Users may create files" from the drive, so it gets the same protection as
+// Program Files: owned by Administrators; SYSTEM and Administrators full
+// control; Users and app packages read and run; nothing inherited.
+function SosInsideDir(path, parent: string): Boolean;
+begin
+  parent := AddBackslash(parent);
+  Result := (Length(parent) > 3) and
+            (CompareText(Copy(AddBackslash(path), 1, Length(parent)), parent) = 0);
+end;
+
+function SosIcacls(params: string): Boolean;
+var
+  rc: Integer;
+begin
+  Result := Exec(ExpandConstant('{sys}\icacls.exe'), params, '', SW_HIDE, ewWaitUntilTerminated, rc) and (rc = 0);
+  if not Result then
+    Log(Format('icacls %s failed (%d)', [params, rc]));
+end;
+
+procedure SosLockInstallDir();
+var
+  dir: string;
+begin
+  dir := RemoveBackslashUnlessRoot(ExpandFileName(ExpandConstant('{app}')));
+  if SosInsideDir(dir, ExpandConstant('{commonpf32}')) or
+      (IsWin64 and SosInsideDir(dir, ExpandConstant('{commonpf64}'))) then begin
+    Log('Application folder is inside Program Files: permissions left as they are');
+    exit;
+  end;
+  if Length(dir) <= 3 then begin
+    Log('Application folder is a drive root: permissions left as they are');
+    exit;
+  end;
+  Log('Restricting the permissions of ' + dir);
+  SosIcacls('"' + dir + '" /setowner *S-1-5-32-544 /T /C /Q');
+  SosIcacls('"' + dir + '" /reset /T /C /Q');
+  if not SosIcacls('"' + dir + '" /inheritance:r /grant:r *S-1-5-18:(OI)(CI)F *S-1-5-32-544:(OI)(CI)F ' +
+                   '*S-1-5-32-545:(OI)(CI)RX *S-1-15-2-1:(OI)(CI)RX /C /Q') then
+    SuppressibleMsgBox('Setup could not restrict the permissions of ' + dir + '. Ordinary users may be able to change files in it; install into Program Files instead.', mbError, MB_OK, IDOK);
+end;
+
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   commonCachePath, userCachePath: string;
@@ -1119,13 +1169,9 @@ begin
       // Secure Office Suite never checks for updates online and installs no update service.
       RegWriteDWordValue(HKEY_LOCAL_MACHINE, ExpandConstant('{#APP_REG_PATH}'), 'CheckForUpdates', 0);
     end;
-    // migrate from the prev version when user's data saved to system common path
-    commonCachePath := ExpandConstant('{commonappdata}\{#APP_PATH}\data\cache');
-    userCachePath := ExpandConstant('{localappdata}\{#APP_PATH}\data\cache');
-    if DirExists(commonCachePath) then begin
-      ForceDirectories(userCachePath);
-      DirectoryCopy(commonCachePath, userCachePath);
-    end;
+    // No copying of an old cache from C:\ProgramData into the profile of the
+    // administrator who installs: any user can write in C:\ProgramData, and
+    // no version of Secure Office Suite kept its data there.
 
     paramStore := GetCommandlineParam('/store');
     if Length(paramStore) > 0 then begin

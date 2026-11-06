@@ -58,8 +58,10 @@ DefaultDirName            ={pf}\{#APP_PATH}
 #endif
 DisableProgramGroupPage   = yes
 DisableWelcomePage        = no
-DEPCompatible             = no
-ASLRCompatible            = no
+; the setup and uninstall programs run as administrator: keep Windows'
+; exploit protections (DEP and ASLR) on for them
+DEPCompatible             = yes
+ASLRCompatible            = yes
 DisableDirPage            = auto
 AllowNoIcons              = yes
 AlwaysShowDirOnReadyPage  = yes
@@ -73,7 +75,7 @@ OutputDir                 ={#OUTPUT_DIR}
 PrivilegesRequired        =admin
 AppMutex                  ={code:getAppMutex}
 ChangesAssociations       =yes
-ChangesEnvironment        =yes
+ChangesEnvironment        =no
 SetupMutex                =ASC
 
 #if Ver < EncodeVer(6,0,0) & ARCH == "x64"
@@ -190,12 +192,19 @@ ur.RightToLeft=yes
 #include '_messages.iss'
 
 [Dirs]
-Name: {commonappdata}\{#APP_PATH}\webdata\cloud; Flags: uninsalwaysuninstall;
+; Nothing in C:\ProgramData: every user can write there, and the application
+; keeps its data in each user's own profile.
+; The application folder itself: ordinary users must not be able to write
+; in it, wherever it is (SosLockInstallDir in _code.iss). [Dirs] comes before
+; [Files], so this runs before any file is put there.
+Name: "{app}"; AfterInstall: SosLockInstallDir;
 
 
 [Files]
-Source: "vc_redist.{#ARCH}.exe"; DestDir: {app}; Flags: deleteafterinstall; \
-  AfterInstall: installVCRedist(ExpandConstant('{app}\vc_redist.{#ARCH}.exe'), ExpandConstant('{cm:InstallAdditionalComponents}')); \
+; unpacked into setup's own temporary folder (only the installing
+; administrator can write there), not the application folder
+Source: "vc_redist.{#ARCH}.exe"; DestDir: {tmp}; Flags: deleteafterinstall; \
+  AfterInstall: installVCRedist(ExpandConstant('{tmp}\vc_redist.{#ARCH}.exe'), ExpandConstant('{cm:InstallAdditionalComponents}')); \
   Check: not CheckVCRedist;
 
 Source: "{#BUILD_DIR}\desktop\*"; DestDir: {app}; Flags: ignoreversion recursesubdirs;
@@ -221,6 +230,11 @@ Type: files; Name: "{commondesktop}\{#sAppIconName}.lnk";
 ; and so has the Start Menu: earlier versions kept the suite, the four
 ; applications, New document entries and Uninstall in a Start Menu folder
 Type: filesandordirs; Name: "{commonprograms}\{#sCompanyName}";
+; earlier versions made an empty, user-writable folder in C:\ProgramData
+Type: dirifempty; Name: "{commonappdata}\{#APP_PATH}\webdata\cloud";
+Type: dirifempty; Name: "{commonappdata}\{#APP_PATH}\webdata";
+Type: dirifempty; Name: "{commonappdata}\{#APP_PATH}";
+Type: dirifempty; Name: "{commonappdata}\{#sIntCompanyName}";
 
 [Tasks]
 Name: desktopicon; Description: {cm:SosCreateDesktopIcons}; GroupDescription: {cm:AdditionalIcons};
