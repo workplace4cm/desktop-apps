@@ -200,6 +200,10 @@ ifdef MEDIAVIEWER_PREFIX
 	chmod 755 $@/main/opt/$(MEDIAVIEWER_PREFIX)/VideoPlayer
 endif
 
+	# put back $$ORIGIN where the build left "$$", "$$/converter" or "RIGIN"
+	# (relative folders, searched from wherever the user is)
+	bash common/linux/fix-rpath.sh $@/main/opt
+
 $(RPM) : build rpm/$(PACKAGE_NAME).spec
 	cd rpm && rpmbuild -bb \
 		--define "_topdir $(PWD)/$(RPM_BUILD_DIR)" \
