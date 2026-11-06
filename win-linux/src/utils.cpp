@@ -529,8 +529,17 @@ void Utils::openFileLocation(const QString& path)
     if ( !_file_browser.isEmpty() && _file_browser != "unknown" ) {
         qputenv("LD_LIBRARY_PATH", "");
         QProcess::startDetached(_file_browser, QStringList{_arg_select, fileInfo.absoluteFilePath()});
-    } else
-        system(QString("LD_LIBRARY_PATH='' xdg-open \"%1\"").arg(fileInfo.path()).toUtf8());
+    } else {
+        // The folder name goes to xdg-open as an argument, never through a
+        // shell: a folder named like $(command) must not run anything.
+        QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+        env.remove("LD_LIBRARY_PATH");
+        QProcess proc;
+        proc.setProgram("xdg-open");
+        proc.setArguments({fileInfo.path()});
+        proc.setProcessEnvironment(env);
+        proc.startDetached();
+    }
 #endif
 }
 
