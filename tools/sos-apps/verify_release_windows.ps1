@@ -67,6 +67,13 @@ public static class SosRel {
 "@
 
 $Apps = [ordered]@{ writer = 'SecureOffice Writer'; sheet = 'SecureOffice Sheet'; presentation = 'SecureOffice Presentation'; pdf = 'SecureOffice PDF' }
+# builds before 2026-11 called the applications EuroOffice Writer...; the
+# previous build of an upgrade test may still use those names
+$OldApps = [ordered]@{ writer = 'EuroOffice Writer'; sheet = 'EuroOffice Sheet'; presentation = 'EuroOffice Presentation'; pdf = 'EuroOffice PDF' }
+function NameOf([string]$app) {
+    if (-not (Test-Path (Join-Path $StartMenu "$($Apps[$app]).lnk")) -and (Test-Path (Join-Path $StartMenu "$($OldApps[$app]).lnk"))) { return $OldApps[$app] }
+    return $Apps[$app]
+}
 $SampleOf = @{ writer = 'Sample.docx'; sheet = 'Sample.xlsx'; presentation = 'Sample.pptx'; pdf = 'Sample.pdf' }
 $RegApp = 'HKLM:\SOFTWARE\Secure Office Suite\DesktopEditors'
 $AppDir = Join-Path $env:ProgramFiles 'Secure Office Suite\DesktopEditors'
@@ -135,11 +142,12 @@ function Uninstall([string]$log) {
 function Open-Document([string]$app, [string]$when) {
     $f = Join-Path $Docs $SampleOf[$app]
     Start-Process -FilePath $Exe -ArgumentList "--app=$app", "`"$f`""
-    $re = '^\*?' + [regex]::Escape($SampleOf[$app]) + '( .*)? - ' + [regex]::Escape($Apps[$app]) + '$'
+    $name = NameOf $app
+    $re = '^\*?' + [regex]::Escape($SampleOf[$app]) + '( .*)? - ' + [regex]::Escape($name) + '$'
     $w = Wait-Window $re 150
-    if ($w -and (AppOf $w.pid) -eq $app) { Pass "$($Apps[$app]) opened $($SampleOf[$app]) ($when, pid $($w.pid))" }
+    if ($w -and (AppOf $w.pid) -eq $app) { Pass "$name opened $($SampleOf[$app]) ($when, pid $($w.pid))" }
     elseif ($w) { Fail "$($SampleOf[$app]) opened in pid $($w.pid) ($(AppOf $w.pid)) ($when)" }
-    else { Fail "$($Apps[$app]) did not open $($SampleOf[$app]) ($when)"; Show-Windows; Show-Crashes }
+    else { Fail "$name did not open $($SampleOf[$app]) ($when)"; Show-Windows; Show-Crashes }
 }
 function Start-FromStartMenu([string]$app, [string]$when) {
     $lnk = Join-Path $StartMenu "$($Apps[$app]).lnk"
@@ -191,8 +199,9 @@ function Snapshot {
 }
 function Check-Installed([string]$when) {
     foreach ($dir in @($StartMenu, $Desktop)) {
-        $names = (Get-ChildItem $dir -Filter '*.lnk' | Where-Object { $_.BaseName -match 'SecureOffice|Secure Office' }).BaseName | Sort-Object
-        if (($names -join ', ') -eq (($Apps.Values | Sort-Object) -join ', ')) { Pass "four shortcuts in $dir ($when)" } else { Fail "shortcuts in ${dir}: $($names -join ', ') ($when)" }
+        $names = (Get-ChildItem $dir -Filter '*.lnk' | Where-Object { $_.BaseName -match 'SecureOffice|Secure Office|EuroOffice' }).BaseName | Sort-Object
+        $want = ($Apps.Keys | ForEach-Object { NameOf $_ }) | Sort-Object
+        if (($names -join ', ') -eq ($want -join ', ')) { Pass "four shortcuts in $dir ($when)" } else { Fail "shortcuts in ${dir}: $($names -join ', ') ($when)" }
     }
     foreach ($pair in @(@('.docx', 'writer'), @('.xlsx', 'sheet'), @('.csv', 'sheet'), @('.pptx', 'presentation'), @('.pdf', 'pdf'))) {
         $progId = (Get-ItemProperty "HKLM:\SOFTWARE\Classes\$($pair[0])" -ErrorAction SilentlyContinue).'(default)'

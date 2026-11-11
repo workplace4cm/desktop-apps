@@ -50,7 +50,10 @@ ok()   { echo "PASS: $*"; }
 fail() { echo "FAIL: $*"; FAILS=$((FAILS + 1)); }
 shot() { import -window root "$OUT/$1.png" 2>/dev/null || true; }
 
-app_name() {
+app_name() {   # the name the installed build gives the application (the previous build may be older)
+    local n
+    n=$(sed -n 's/^Name=//p' "/usr/share/applications/$PREFIX-$1.desktop" 2>/dev/null | head -1)
+    [ -n "$n" ] && { echo "$n"; return; }
     case $1 in
         writer) echo "SecureOffice Writer";; sheet) echo "SecureOffice Sheet";;
         presentation) echo "SecureOffice Presentation";; pdf) echo "SecureOffice PDF";;
