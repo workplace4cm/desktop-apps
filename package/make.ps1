@@ -78,7 +78,7 @@ Copy-Item -Force `
     -Path "$PSScriptRoot\..\win-linux\res\icons\desktopeditors-eo.ico" `
     -Destination "$BuildDir\desktop\app.ico"
 
-# EuroOffice Writer, Sheet, Presentation and PDF: each application's own
+# SecureOffice Writer, Sheet, Presentation and PDF: each application's own
 # icon for its shortcuts, taskbar button and file associations
 Write-Host "COPY: application icons > $BuildDir\desktop\icons\"
 New-Item -ItemType Directory -Force -Path "$BuildDir\desktop\icons" | Out-Null

@@ -1,5 +1,5 @@
 #!/bin/sh
-# EuroOffice Writer, Sheet, Presentation and PDF become the system-wide
+# SecureOffice Writer, Sheet, Presentation and PDF become the system-wide
 # default applications for their file types: the package's list is copied
 # into /etc/xdg/mimeapps.list between two marker lines (postrm removes them).
 # Settings a user made in ~/.config/mimeapps.list still win, and lines an

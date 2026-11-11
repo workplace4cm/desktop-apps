@@ -73,7 +73,7 @@ rm -rf "%{buildroot}"
 # default file types of the four applications (deb postinst uses them)
 %attr(-, root, root) %{_datadir}/%{_package_name}/*
 %attr(755, root, root) %{_bindir}/%{_desktopeditors_exec}
-# EuroOffice Writer, Sheet, Presentation and PDF
+# SecureOffice Writer, Sheet, Presentation and PDF
 %attr(755, root, root) %{_bindir}/%{_desktopeditors_exec}-*
 %if "%{_company_name}" == "euro-office"
 %attr(-, root, root) %{_bindir}/desktopeditors

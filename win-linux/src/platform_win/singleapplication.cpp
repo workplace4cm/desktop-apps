@@ -89,7 +89,7 @@ bool SingleApplication::sendMessage(const QByteArray &message)
         cm_line[msg.length()] = '\0';
 
         // the running application may come to the front with the document
-        // (EuroOffice Writer, Sheet... hand documents to each other)
+        // (SecureOffice Writer, Sheet... hand documents to each other)
         AllowSetForegroundWindow(ASFW_ANY);
 
         COPYDATASTRUCT MyCDS = {1};

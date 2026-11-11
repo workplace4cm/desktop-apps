@@ -1,5 +1,5 @@
 #!/bin/bash
-# Secure Office Suite: checks that EuroOffice Writer, Sheet, Presentation and
+# Secure Office Suite: checks that SecureOffice Writer, Sheet, Presentation and
 # PDF run as four independent applications from the installed package.
 #
 #   verify_apps.sh <prefix> <out-dir>
@@ -71,17 +71,17 @@ ls -l "$DOCS"
 
 # -- 1. a document opens directly in its application
 ( "$PREFIX-presentation" "$DOCS/Deck.pptx"; echo "exited with status $?" ) >"$OUT/presentation.log" 2>&1 &
-if pid=$(wait_window '^\*?Deck\.pptx.* - EuroOffice Presentation$'); then
-    ok "Deck.pptx opened directly in EuroOffice Presentation (pid $pid)"
+if pid=$(wait_window '^\*?Deck\.pptx.* - SecureOffice Presentation$'); then
+    ok "Deck.pptx opened directly in SecureOffice Presentation (pid $pid)"
 else
-    fail "Deck.pptx did not open in EuroOffice Presentation"
+    fail "Deck.pptx did not open in SecureOffice Presentation"
 fi
 shot 1-presentation-document
 
 # -- 2. each application on its own start page, own process and identity
 declare -A PID
 for app in writer sheet pdf; do
-    case $app in writer) name="EuroOffice Writer";; sheet) name="EuroOffice Sheet";; pdf) name="EuroOffice PDF";; esac
+    case $app in writer) name="SecureOffice Writer";; sheet) name="SecureOffice Sheet";; pdf) name="SecureOffice PDF";; esac
     ( "$PREFIX-$app"; echo "exited with status $?" ) >"$OUT/$app.log" 2>&1 &
     if p=$(wait_window "^$name\$"); then
         PID[$app]=$p
@@ -105,7 +105,7 @@ done
 
 # -- 3. launching Writer again reaches the running Writer
 "$PREFIX-writer" "$DOCS/Second.docx" >>"$OUT/writer.log" 2>&1
-if p=$(wait_window '^\*?Second\.docx.* - EuroOffice Writer$'); then
+if p=$(wait_window '^\*?Second\.docx.* - SecureOffice Writer$'); then
     [ "$p" = "${PID[writer]:-}" ] && ok "Second.docx opened in the running Writer (pid $p)" \
                                   || fail "Second.docx opened in pid $p, Writer is ${PID[writer]:-?}"
 else
@@ -116,36 +116,36 @@ shot 3-writer-second-document
 
 # -- 4. a spreadsheet given to Writer opens in Sheet
 "$PREFIX-writer" "$DOCS/Routed.xlsx" >>"$OUT/writer.log" 2>&1
-if p=$(wait_window '^\*?Routed\.xlsx.* - EuroOffice Sheet$'); then
+if p=$(wait_window '^\*?Routed\.xlsx.* - SecureOffice Sheet$'); then
     [ "$p" = "${PID[sheet]:-}" ] && ok "Routed.xlsx given to Writer opened in Sheet (pid $p)" \
                                  || fail "Routed.xlsx opened in pid $p, Sheet is ${PID[sheet]:-?}"
 else
     fail "Routed.xlsx did not open in Sheet"
 fi
-titles | grep -q "Routed.xlsx.* - EuroOffice Writer" && fail "Writer shows Routed.xlsx too" || ok "Writer did not open Routed.xlsx"
+titles | grep -q "Routed.xlsx.* - SecureOffice Writer" && fail "Writer shows Routed.xlsx too" || ok "Writer did not open Routed.xlsx"
 shot 4-routed-to-sheet
 
-# the suite command with a PDF opens EuroOffice PDF
+# the suite command with a PDF opens SecureOffice PDF
 "$PREFIX" "$DOCS/Form.pdf" >"$OUT/suite.log" 2>&1
-if p=$(wait_window '^\*?Form\.pdf.* - EuroOffice PDF$'); then
+if p=$(wait_window '^\*?Form\.pdf.* - SecureOffice PDF$'); then
     [ "$p" = "${PID[pdf]:-}" ] && ok "Form.pdf from the suite command opened in PDF (pid $p)" \
                                || fail "Form.pdf opened in pid $p, PDF is ${PID[pdf]:-?}"
 else
-    fail "Form.pdf did not open in EuroOffice PDF"
+    fail "Form.pdf did not open in SecureOffice PDF"
 fi
 pgrep -u "$(id -u)" -f -- "$APP_DIR/DesktopEditors$" >/dev/null && fail "the suite process stayed" || ok "the suite command handed over and quit"
 
 # a new spreadsheet asked of Writer (--new:cell) is made by Sheet
-before=$(titles | grep -- " - EuroOffice Sheet$")
+before=$(titles | grep -- " - SecureOffice Sheet$")
 "$PREFIX-writer" --new:cell >>"$OUT/writer.log" 2>&1
 new=""
 for _ in $(seq 90); do
-    new=$(titles | grep -- " - EuroOffice Sheet$" | grep -vxF -- "$before")
+    new=$(titles | grep -- " - SecureOffice Sheet$" | grep -vxF -- "$before")
     [ -n "$new" ] && break
     sleep 1
 done
 [ -n "$new" ] && ok "--new:cell given to Writer made a spreadsheet in Sheet ($new)" || fail "--new:cell did not reach Sheet"
-extra=$(titles | grep -- " - EuroOffice Writer$" | grep -v "Second\.docx")
+extra=$(titles | grep -- " - SecureOffice Writer$" | grep -v "Second\.docx")
 [ -z "$extra" ] && ok "Writer made no spreadsheet" || fail "Writer shows: $extra"
 shot 5-all
 

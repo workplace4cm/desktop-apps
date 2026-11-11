@@ -38,7 +38,7 @@ QString Utils::getAppCommonPath()
 
 QIcon Utils::appIcon()
 {
-    // EuroOffice Writer, Sheet, Presentation and PDF have their own icons
+    // SecureOffice Writer, Sheet, Presentation and PDF have their own icons
     const QString app = AppIdentity::current();
     if ( !app.isEmpty() ) {
 #ifdef _WIN32

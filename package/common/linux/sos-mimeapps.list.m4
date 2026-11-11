@@ -1,5 +1,5 @@
 include(defines.m4)dnl
-dnl Secure Office Suite: the file types EuroOffice Writer, Sheet, Presentation
+dnl Secure Office Suite: the file types SecureOffice Writer, Sheet, Presentation
 dnl and PDF open by default. The package's postinst copies these lines into
 dnl the system-wide /etc/xdg/mimeapps.list (between BEGIN/END markers that
 dnl postrm removes again); a user's own choice in ~/.config/mimeapps.list

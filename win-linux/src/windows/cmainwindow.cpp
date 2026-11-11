@@ -472,7 +472,7 @@ QWidget* CMainWindow::createMainPanel(QWidget *parent)
     m_pButtonMain->setObjectName( "toolButtonMain" );
     // Icon-only image plus the product name as real text (instead of a
     // wordmark image), so the build-time brand name shows up here.
-    // the application's own name (EuroOffice Writer...), or the suite's
+    // the application's own name (SecureOffice Writer...), or the suite's
 #ifdef ABOUT_PAGE_APP_NAME
     const QString productName = AppIdentity::current().isEmpty() ? QString::fromUtf8(ABOUT_PAGE_APP_NAME) : AppIdentity::name();
 #else
@@ -634,7 +634,7 @@ void CMainWindow::onEditorAllowedClose(int uid)
 
 void CMainWindow::onTabChanged(int index)
 {
-    // "Report.docx - EuroOffice Writer", or the application's name on its
+    // "Report.docx - SecureOffice Writer", or the application's name on its
     // start page: the taskbar and window switcher show which application
     QString title = AppIdentity::windowTitle();
     if (index > -1) {

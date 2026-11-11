@@ -2,7 +2,7 @@
 #include <QTemporaryDir>
 #include "cappidentity.h"
 
-// EuroOffice Writer, Sheet, Presentation and PDF: which application a launch
+// SecureOffice Writer, Sheet, Presentation and PDF: which application a launch
 // belongs to, and where each document goes
 class TestAppIdentity : public QObject
 {
@@ -19,10 +19,10 @@ private slots:
     void fourApplications()
     {
         QCOMPARE(AppIdentity::ids(), (QStringList{"writer", "sheet", "presentation", "pdf"}));
-        QCOMPARE(AppIdentity::name("writer"), QString("EuroOffice Writer"));
-        QCOMPARE(AppIdentity::name("sheet"), QString("EuroOffice Sheet"));
-        QCOMPARE(AppIdentity::name("presentation"), QString("EuroOffice Presentation"));
-        QCOMPARE(AppIdentity::name("pdf"), QString("EuroOffice PDF"));
+        QCOMPARE(AppIdentity::name("writer"), QString("SecureOffice Writer"));
+        QCOMPARE(AppIdentity::name("sheet"), QString("SecureOffice Sheet"));
+        QCOMPARE(AppIdentity::name("presentation"), QString("SecureOffice Presentation"));
+        QCOMPARE(AppIdentity::name("pdf"), QString("SecureOffice PDF"));
         QCOMPARE(AppIdentity::name(""), QString("Secure Office Suite"));
         QVERIFY(!AppIdentity::isApp("suite"));
         QVERIFY(!AppIdentity::isApp("WRITER"));
@@ -141,8 +141,8 @@ private slots:
 
         // the installers use the same names (package/inno, package/common/linux)
         AppIdentity::setCurrent("sheet");
-        QCOMPARE(AppIdentity::windowTitle(), QString("EuroOffice Sheet"));
-        QCOMPARE(AppIdentity::windowTitle("Budget.xlsx"), QString("Budget.xlsx - EuroOffice Sheet"));
+        QCOMPARE(AppIdentity::windowTitle(), QString("SecureOffice Sheet"));
+        QCOMPARE(AppIdentity::windowTitle("Budget.xlsx"), QString("Budget.xlsx - SecureOffice Sheet"));
         AppIdentity::setCurrent("nonsense");
         QCOMPARE(AppIdentity::current(), QString());
     }

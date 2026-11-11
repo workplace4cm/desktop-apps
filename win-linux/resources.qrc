@@ -94,7 +94,7 @@
         <file>res/icons/splash-eo.svg</file>
         <file alias="tab-icon-light.svg">res/icons/app-icon-eo.svg</file>
         <file alias="tab-icon-dark.svg">res/icons/app-icon-eo-dark.svg</file>
-        <!-- EuroOffice Writer, Sheet, Presentation and PDF -->
+        <!-- SecureOffice Writer, Sheet, Presentation and PDF -->
         <file alias="sos/apps/writer.svg">res/icons/apps/writer.svg</file>
         <file alias="sos/apps/sheet.svg">res/icons/apps/sheet.svg</file>
         <file alias="sos/apps/presentation.svg">res/icons/apps/presentation.svg</file>

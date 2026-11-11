@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Secure Office Suite: Windows integration of EuroOffice Writer, Sheet,
+    Secure Office Suite: Windows integration of SecureOffice Writer, Sheet,
     Presentation and PDF, checked with the real installer.
 
 .DESCRIPTION
@@ -76,7 +76,7 @@ public static class SosWin {
 }
 "@
 
-$Apps = [ordered]@{ writer = 'EuroOffice Writer'; sheet = 'EuroOffice Sheet'; presentation = 'EuroOffice Presentation'; pdf = 'EuroOffice PDF' }
+$Apps = [ordered]@{ writer = 'SecureOffice Writer'; sheet = 'SecureOffice Sheet'; presentation = 'SecureOffice Presentation'; pdf = 'SecureOffice PDF' }
 function Owner([string]$ext) {
     switch ($ext.TrimStart('.').ToLower()) {
         { $_ -in 'doc','docx','odt','rtf','txt' } { 'writer' }
@@ -113,7 +113,7 @@ function Wait-Window([string]$re, [int]$secs = 150) {
     return $null
 }
 function Show-Windows {
-    [SosWin]::Windows() | Where-Object { $_ -match 'EuroOffice|Secure Office' } | ForEach-Object { Write-Host "    window: $_" }
+    [SosWin]::Windows() | Where-Object { $_ -match 'SecureOffice|Secure Office' } | ForEach-Object { Write-Host "    window: $_" }
 }
 # why an application is gone: its processes and Windows' crash reports
 function Show-Crashes {
@@ -250,7 +250,7 @@ $shell = New-Object -ComObject WScript.Shell
 $startMenu = [Environment]::GetFolderPath('CommonPrograms')
 $desktop = [Environment]::GetFolderPath('CommonDesktopDirectory')
 foreach ($where in @(@{ dir = $startMenu; what = 'Start Menu entry' }, @{ dir = $desktop; what = 'desktop shortcut' })) {
-    $ours = Get-ChildItem $where.dir -Filter '*.lnk' | Where-Object { $_.BaseName -match 'EuroOffice|Secure Office' }
+    $ours = Get-ChildItem $where.dir -Filter '*.lnk' | Where-Object { $_.BaseName -match 'SecureOffice|Secure Office' }
     $names = ($ours.BaseName | Sort-Object) -join ', '
     if ($names -eq (($Apps.Values | Sort-Object) -join ', ')) { Pass "$($where.what)s: $names" } else { Fail "$($where.what)s: $names" }
     foreach ($app in $Apps.Keys) {
@@ -276,9 +276,9 @@ foreach ($app in $Apps.Keys) {
 }
 Save-Screen '1-start-menu-launch'
 Close-Apps
-Start-Process (Join-Path $desktop 'EuroOffice PDF.lnk')
-$w = Wait-Window '^EuroOffice PDF$' 150
-if ($w -and (AppOf $w.pid) -eq 'pdf') { Pass "the EuroOffice PDF desktop shortcut starts EuroOffice PDF" } else { Fail "the EuroOffice PDF desktop shortcut did not start it" }
+Start-Process (Join-Path $desktop 'SecureOffice PDF.lnk')
+$w = Wait-Window '^SecureOffice PDF$' 150
+if ($w -and (AppOf $w.pid) -eq 'pdf') { Pass "the SecureOffice PDF desktop shortcut starts SecureOffice PDF" } else { Fail "the SecureOffice PDF desktop shortcut did not start it" }
 Close-Apps
 
 # ------------------------------------------------------- 2. Default Apps
@@ -328,8 +328,8 @@ foreach ($ext in $Exts) {
             # CSV asks for its import options first; the application must stay up meanwhile
             $w = Wait-Window ('^\*?Sample\.csv( .*)? - ' + [regex]::Escape($Apps.sheet) + '$') 5
             Start-Sleep 12
-            if ($w -and (Get-Process -Id $w.pid -ErrorAction SilentlyContinue)) { Pass "EuroOffice Sheet still running 12 s after opening Sample.csv (pid $($w.pid))" }
-            else { Fail "EuroOffice Sheet (pid $($w.pid)) quit within 12 s of opening Sample.csv"; Show-Windows; Show-Crashes }
+            if ($w -and (Get-Process -Id $w.pid -ErrorAction SilentlyContinue)) { Pass "SecureOffice Sheet still running 12 s after opening Sample.csv (pid $($w.pid))" }
+            else { Fail "SecureOffice Sheet (pid $($w.pid)) quit within 12 s of opening Sample.csv"; Show-Windows; Show-Crashes }
         }
     }
 }
@@ -384,7 +384,7 @@ for ($i = 0; $i -lt 300 -and (Test-Path $uninstaller); $i++) { Start-Sleep 1 }
 Start-Sleep 5
 if (Test-Path (Join-Path $AppDir 'DesktopEditors.exe')) { Fail "the program files are still there" } else { Pass "uninstalled" }
 foreach ($dir in @($startMenu, $desktop)) {
-    $left = Get-ChildItem $dir -Filter '*.lnk' | Where-Object { $_.BaseName -match 'EuroOffice|Secure Office' }
+    $left = Get-ChildItem $dir -Filter '*.lnk' | Where-Object { $_.BaseName -match 'SecureOffice|Secure Office' }
     if ($left) { Fail "shortcuts left in ${dir}: $($left.Name -join ', ')" } else { Pass "no shortcuts left in $dir" }
 }
 foreach ($ext in $Exts) {

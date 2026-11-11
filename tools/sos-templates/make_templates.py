@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Secure Office Suite: builds the start-page templates of EuroOffice Writer,
+Secure Office Suite: builds the start-page templates of SecureOffice Writer,
 Sheet and Presentation.
 
     python3 make_templates.py [OUT_DIR]

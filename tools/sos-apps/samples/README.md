@@ -4,9 +4,9 @@ file per file type that must open in its application by a double-click.
 
 | Files | Application |
 |---|---|
-| Sample.doc, .docx, .odt, .rtf, .txt | EuroOffice Writer |
-| Sample.xls, .xlsx, .ods, .csv | EuroOffice Sheet |
-| Sample.ppt, .pptx, .odp | EuroOffice Presentation |
-| Sample.pdf | EuroOffice PDF |
+| Sample.doc, .docx, .odt, .rtf, .txt | SecureOffice Writer |
+| Sample.xls, .xlsx, .ods, .csv | SecureOffice Sheet |
+| Sample.ppt, .pptx, .odp | SecureOffice Presentation |
+| Sample.pdf | SecureOffice PDF |
 
 Made with python-docx / python-pptx and converted with LibreOffice.

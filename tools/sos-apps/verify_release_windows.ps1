@@ -19,7 +19,7 @@
       5. uninstall keeps user data; installing again brings back the Start
          Menu entries, desktop shortcuts and file types, and the
          applications start with the user's recent documents;
-      6. EuroOffice Sheet stays up after a CSV double-click, six times, three
+      6. SecureOffice Sheet stays up after a CSV double-click, six times, three
          of them on a brand-new user profile (the Phase 9 medium finding);
       7. neither the installer nor the applications tried to reach the
          network.
@@ -66,7 +66,7 @@ public static class SosRel {
 }
 "@
 
-$Apps = [ordered]@{ writer = 'EuroOffice Writer'; sheet = 'EuroOffice Sheet'; presentation = 'EuroOffice Presentation'; pdf = 'EuroOffice PDF' }
+$Apps = [ordered]@{ writer = 'SecureOffice Writer'; sheet = 'SecureOffice Sheet'; presentation = 'SecureOffice Presentation'; pdf = 'SecureOffice PDF' }
 $SampleOf = @{ writer = 'Sample.docx'; sheet = 'Sample.xlsx'; presentation = 'Sample.pptx'; pdf = 'Sample.pdf' }
 $RegApp = 'HKLM:\SOFTWARE\Secure Office Suite\DesktopEditors'
 $AppDir = Join-Path $env:ProgramFiles 'Secure Office Suite\DesktopEditors'
@@ -92,7 +92,7 @@ function Wait-Window([string]$re, [int]$secs = 150) {
     return $null
 }
 function Show-Windows {
-    [SosRel]::Windows() | Where-Object { $_ -match 'EuroOffice|Secure Office|Sample' } | ForEach-Object { Write-Host "    window: $_" }
+    [SosRel]::Windows() | Where-Object { $_ -match 'SecureOffice|Secure Office|Sample' } | ForEach-Object { Write-Host "    window: $_" }
 }
 function Show-Crashes {
     Get-CimInstance Win32_Process -Filter "Name='DesktopEditors.exe'" -ErrorAction SilentlyContinue |
@@ -191,7 +191,7 @@ function Snapshot {
 }
 function Check-Installed([string]$when) {
     foreach ($dir in @($StartMenu, $Desktop)) {
-        $names = (Get-ChildItem $dir -Filter '*.lnk' | Where-Object { $_.BaseName -match 'EuroOffice|Secure Office' }).BaseName | Sort-Object
+        $names = (Get-ChildItem $dir -Filter '*.lnk' | Where-Object { $_.BaseName -match 'SecureOffice|Secure Office' }).BaseName | Sort-Object
         if (($names -join ', ') -eq (($Apps.Values | Sort-Object) -join ', ')) { Pass "four shortcuts in $dir ($when)" } else { Fail "shortcuts in ${dir}: $($names -join ', ') ($when)" }
     }
     foreach ($pair in @(@('.docx', 'writer'), @('.xlsx', 'sheet'), @('.csv', 'sheet'), @('.pptx', 'presentation'), @('.pdf', 'pdf'))) {
@@ -285,7 +285,7 @@ Write-Host "== uninstall"
 $snap = Snapshot | Where-Object { $_ -notmatch 'recents' }
 Uninstall 'uninstall.log'
 if (Test-Path $Exe) { Fail "program files still there" } else { Pass "uninstalled" }
-if (Get-ChildItem $StartMenu, $Desktop -Filter '*.lnk' | Where-Object { $_.BaseName -match 'EuroOffice|Secure Office' }) { Fail "shortcuts left" } else { Pass "shortcuts removed" }
+if (Get-ChildItem $StartMenu, $Desktop -Filter '*.lnk' | Where-Object { $_.BaseName -match 'SecureOffice|Secure Office' }) { Fail "shortcuts left" } else { Pass "shortcuts removed" }
 $diff = Compare-Object @($snap) @(Snapshot | Where-Object { $_ -notmatch 'recents' })
 if (-not $diff) { Pass "the uninstall kept settings, profiles and documents" } else { Fail "user files changed in the uninstall:"; $diff | Format-Table -AutoSize | Out-String | Write-Host }
 if (RecentsFile) { Pass "recent documents kept after the uninstall" } else { Fail "recent documents gone after the uninstall" }
@@ -304,7 +304,7 @@ Start-Sleep 3
 Close-Apps
 Check-Recents 'after reinstalling'
 Start-Process -FilePath (Join-Path $Docs 'Sample.odt')
-if (Wait-Window '^\*?Sample\.odt( .*)? - EuroOffice Writer$' 150) { Pass "double-click on Sample.odt opens Writer after reinstall" } else { Fail "Sample.odt did not open in Writer after reinstall"; Show-Windows }
+if (Wait-Window '^\*?Sample\.odt( .*)? - SecureOffice Writer$' 150) { Pass "double-click on Sample.odt opens Writer after reinstall" } else { Fail "Sample.odt did not open in Writer after reinstall"; Show-Windows }
 Close-Apps
 
 # ------------------------------------------------- 6. CSV double-click
@@ -321,7 +321,7 @@ for ($i = 1; $i -le 6; $i++) {
     $f = Join-Path $Docs "Csv-run-$i.csv"
     Copy-Item (Join-Path $Docs 'Sample.csv') $f -Force
     Start-Process -FilePath $f
-    $re = '^\*?' + [regex]::Escape([IO.Path]::GetFileName($f)) + '( .*)? - EuroOffice Sheet$'
+    $re = '^\*?' + [regex]::Escape([IO.Path]::GetFileName($f)) + '( .*)? - SecureOffice Sheet$'
     $w = Wait-Window $re 150
     $label = "run $i ($(if ($fresh) { 'new user profile' } else { 'existing profile' }))"
     if (-not $w) { Fail "CSV $label did not open in Sheet"; $csvFails++; Show-Windows; Show-Crashes; Save-Screen "6-csv-$i"; continue }

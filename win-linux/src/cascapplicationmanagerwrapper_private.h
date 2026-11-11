@@ -742,7 +742,7 @@ public:
     auto openDocument(const COpenOptions& opts, int * view_id = nullptr) -> bool
     {
         // Each application only hosts its own documents: a spreadsheet
-        // picked in Writer opens in EuroOffice Sheet, and so on.
+        // picked in Writer opens in SecureOffice Sheet, and so on.
         if ( routeToOwner(opts) ) {
             if ( view_id ) *view_id = -1;
             return true;

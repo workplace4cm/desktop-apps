@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Secure Office Suite: Phase 9 cross-application functional and format
-regression test of EuroOffice Writer, Sheet, Presentation and PDF.
+regression test of SecureOffice Writer, Sheet, Presentation and PDF.
 
     run_regression.py [--out DIR] [--only functional|formats] [--apps writer,sheet,...]
 
@@ -267,7 +267,7 @@ def functional(app, docs):
                        % (how, ed.title(), ed.editor_kind().split('/apps/')[-1]))
                 saved['editor'] = ed
     else:
-        record(A, '03 Blank document', app, 'NA', 'EuroOffice PDF has no blank document; its first card is Open PDF (by design, Phase 3)')
+        record(A, '03 Blank document', app, 'NA', 'SecureOffice PDF has no blank document; its first card is Open PDF (by design, Phase 3)')
 
     ed = saved.get('editor')
     if ed:

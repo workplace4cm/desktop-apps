@@ -23,13 +23,13 @@ RECENTS_CANDIDATES = [os.path.join(DATA, 'sos-recents.json')]
 OUT = os.environ.get('SOS_OUT', '/tmp/sos-regression')
 
 APPS = {
-    'writer': dict(name='EuroOffice Writer', editor='documenteditor', ext='docx', blank='word',
+    'writer': dict(name='SecureOffice Writer', editor='documenteditor', ext='docx', blank='word',
                    formats=['doc', 'docx', 'odt', 'rtf', 'txt']),
-    'sheet': dict(name='EuroOffice Sheet', editor='spreadsheeteditor', ext='xlsx', blank='cell',
+    'sheet': dict(name='SecureOffice Sheet', editor='spreadsheeteditor', ext='xlsx', blank='cell',
                   formats=['xls', 'xlsx', 'ods', 'csv']),
-    'presentation': dict(name='EuroOffice Presentation', editor='presentationeditor', ext='pptx', blank='slide',
+    'presentation': dict(name='SecureOffice Presentation', editor='presentationeditor', ext='pptx', blank='slide',
                          formats=['ppt', 'pptx', 'odp']),
-    'pdf': dict(name='EuroOffice PDF', editor='pdfeditor', ext='pdf', blank=None, formats=['pdf']),
+    'pdf': dict(name='SecureOffice PDF', editor='pdfeditor', ext='pdf', blank=None, formats=['pdf']),
 }
 
 

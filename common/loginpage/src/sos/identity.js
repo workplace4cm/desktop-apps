@@ -4,7 +4,7 @@
  * One registry describes the suite and its four applications. Shared
  * components (start page header, template gallery, recent list, Backstage
  * navigation) read the current identity from here instead of hard-coding
- * an application, so the same code serves EuroOffice Writer, Sheet,
+ * an application, so the same code serves SecureOffice Writer, Sheet,
  * Presentation and PDF.
  *
  * The current application comes from the start page URL (?app=writer),
@@ -30,7 +30,7 @@
         },
         writer: {
             id: 'writer',
-            name: 'EuroOffice Writer',
+            name: 'SecureOffice Writer',
             shortName: 'Writer',
             icon: 'docx',
             newTypes: ['word'],
@@ -40,7 +40,7 @@
         },
         sheet: {
             id: 'sheet',
-            name: 'EuroOffice Sheet',
+            name: 'SecureOffice Sheet',
             shortName: 'Sheet',
             icon: 'xlsx',
             newTypes: ['cell'],
@@ -49,7 +49,7 @@
         },
         presentation: {
             id: 'presentation',
-            name: 'EuroOffice Presentation',
+            name: 'SecureOffice Presentation',
             shortName: 'Presentation',
             icon: 'pptx',
             newTypes: ['slide'],
@@ -58,7 +58,7 @@
         },
         pdf: {
             id: 'pdf',
-            name: 'EuroOffice PDF',
+            name: 'SecureOffice PDF',
             shortName: 'PDF',
             icon: 'pdf',
             newTypes: ['form'],

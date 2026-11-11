@@ -1,5 +1,5 @@
 #!/bin/bash
-# Secure Office Suite: Ubuntu integration of EuroOffice Writer, Sheet,
+# Secure Office Suite: Ubuntu integration of SecureOffice Writer, Sheet,
 # Presentation and PDF, checked on the installed package.
 #
 #   verify_integration.sh <prefix> <deb> <out-dir>
@@ -42,8 +42,8 @@ shot() { import -window root "$OUT/$1.png" 2>/dev/null || true; }
 
 app_name() {
     case $1 in
-        writer) echo "EuroOffice Writer";; sheet) echo "EuroOffice Sheet";;
-        presentation) echo "EuroOffice Presentation";; pdf) echo "EuroOffice PDF";;
+        writer) echo "SecureOffice Writer";; sheet) echo "SecureOffice Sheet";;
+        presentation) echo "SecureOffice Presentation";; pdf) echo "SecureOffice PDF";;
     esac
 }
 
@@ -225,7 +225,7 @@ grep -c "^# BEGIN .*default applications" "$MIMEAPPS" | grep -qx 1 && ok "defaul
 gio open "$DOCS/Sample.docx" >>"$OUT/gio-open.log" 2>&1
 expect_document "$DOCS/Sample.docx" "double-click after upgrade"
 gio launch "/usr/share/applications/$PREFIX-sheet.desktop" >>"$OUT/launch.log" 2>&1 &
-wait_window "^EuroOffice Sheet\$" 150 >/dev/null && ok "Sheet starts from its menu entry after the upgrade" || fail "Sheet did not start after the upgrade"
+wait_window "^SecureOffice Sheet\$" 150 >/dev/null && ok "Sheet starts from its menu entry after the upgrade" || fail "Sheet did not start after the upgrade"
 shot 4-after-upgrade
 close_apps
 snapshot | grep -v "recents.xml\|/recover" > "$OUT/user-files-before-remove.txt"

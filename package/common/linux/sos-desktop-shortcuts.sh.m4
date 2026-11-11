@@ -2,7 +2,7 @@
 dnl Secure Office Suite: desktop shortcuts for the four applications.
 dnl Ubuntu puts applications in the app grid and the dock, not on the desktop,
 dnl so the package doesn't; a user (or an administrator, per user) runs this.
-# Puts EuroOffice Writer, Sheet, Presentation and PDF on your desktop.
+# Puts SecureOffice Writer, Sheet, Presentation and PDF on your desktop.
 # Run it without arguments to add the four shortcuts, with --remove to take
 # them away again.
 set -e

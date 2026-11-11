@@ -24,17 +24,17 @@ namespace {
     const QList<App>& apps()
     {
         static const QList<App> list{
-            {"writer", "EuroOffice Writer", "Writer", "word",
+            {"writer", "SecureOffice Writer", "Writer", "word",
                 {"doc", "docx", "docm", "dot", "dotx", "dotm", "odt", "ott", "fodt", "rtf", "txt",
                  "html", "htm", "mht", "mhtml", "epub", "fb2", "md", "xml", "pages", "hwp", "hwpx",
                  "wps", "wpt"}},
-            {"sheet", "EuroOffice Sheet", "Sheet", "cell",
+            {"sheet", "SecureOffice Sheet", "Sheet", "cell",
                 {"xls", "xlsx", "xlsm", "xlsb", "xlt", "xltx", "xltm", "ods", "ots", "fods", "csv", "tsv",
                  "numbers", "et", "ett"}},
-            {"presentation", "EuroOffice Presentation", "Presentation", "slide",
+            {"presentation", "SecureOffice Presentation", "Presentation", "slide",
                 {"ppt", "pptx", "pptm", "pps", "ppsx", "ppsm", "pot", "potx", "potm", "odp", "otp",
                  "fodp", "key", "odg", "dps", "dpt"}},
-            {"pdf", "EuroOffice PDF", "PDF", "form",
+            {"pdf", "SecureOffice PDF", "PDF", "form",
                 {"pdf", "djvu", "djv", "xps", "oxps", "docxf", "oform"}},
         };
         return list;

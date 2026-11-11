@@ -1731,12 +1731,12 @@ ur.extRTF =رچ ٹیکسٹ فارمیٹ فائل
 #endif
 
 ; Secure Office Suite: the four applications (languages without a translation use these)
-SosCreateDesktopIcons =Create desktop shortcuts for EuroOffice Writer, Sheet, Presentation and PDF
+SosCreateDesktopIcons =Create desktop shortcuts for SecureOffice Writer, Sheet, Presentation and PDF
 SosWriterComment =Create and edit text documents
 SosSheetComment =Create and edit spreadsheets
 SosPresentationComment =Create and edit presentations
 SosPdfComment =View, fill in, annotate and edit PDF documents
-; Secure Office Suite: plain text opens in EuroOffice Writer (languages without a translation use this)
+; Secure Office Suite: plain text opens in SecureOffice Writer (languages without a translation use this)
 extTXT =Text Document
 en.extTXT =Text Document
 en.extCSV =Comma Separated Values

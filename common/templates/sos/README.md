@@ -5,9 +5,9 @@ and works without a network connection.
 
 | Folder          | Contents                                                      |
 |-----------------|---------------------------------------------------------------|
-| `writer/`       | EuroOffice Writer templates (`.dotx`)                         |
-| `sheet/`        | EuroOffice Sheet templates (`.xltx`)                          |
-| `presentation/` | EuroOffice Presentation templates (`.potx`)                   |
+| `writer/`       | SecureOffice Writer templates (`.dotx`)                         |
+| `sheet/`        | SecureOffice Sheet templates (`.xltx`)                          |
+| `presentation/` | SecureOffice Presentation templates (`.potx`)                   |
 | `thumbs/`       | 304×264 PNG previews for the gallery cards and preview dialog |
 | `manifest.js`   | The list the start pages show (strict JSON between markers)   |
 
@@ -16,7 +16,7 @@ files in `../EN`.
 
 ## How a template becomes a document
 
-1. The start page shows the templates of its application (EuroOffice Writer,
+1. The start page shows the templates of its application (SecureOffice Writer,
    Sheet, Presentation or PDF). The desktop shell checks each file first
    (`win-linux/src/ctemplatelibrary.cpp`); a missing or damaged one is left
    out and named in a notice instead.
@@ -49,9 +49,9 @@ Each user has a **My Templates** folder in their Documents
 creates and opens it). Templates saved there appear under the *My templates*
 category of their application:
 
-- EuroOffice Writer: `.dotx`, `.ott`, `.dot`
-- EuroOffice Sheet: `.xltx`, `.ots`, `.xlt`
-- EuroOffice Presentation: `.potx`, `.otp`, `.pot`
+- SecureOffice Writer: `.dotx`, `.ott`, `.dot`
+- SecureOffice Sheet: `.xltx`, `.ots`, `.xlt`
+- SecureOffice Presentation: `.potx`, `.otp`, `.pot`
 
 A subfolder becomes a sub-category, and an image with the same name as the
 template (`.png` or `.jpg`) is used as its preview. Macro-enabled templates
@@ -59,7 +59,7 @@ are not offered.
 
 ## PDF
 
-EuroOffice PDF offers **Open PDF…**, a **Blank PDF form**, and the fillable
+SecureOffice PDF offers **Open PDF…**, a **Blank PDF form**, and the fillable
 PDF form templates. Combining PDFs is done inside the PDF editor (copy pages
 from one PDF in the page thumbnails and paste them into another); the engine
 has no one-step "combine files" action, so the start page does not offer one.

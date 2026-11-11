@@ -52,8 +52,8 @@ shot() { import -window root "$OUT/$1.png" 2>/dev/null || true; }
 
 app_name() {
     case $1 in
-        writer) echo "EuroOffice Writer";; sheet) echo "EuroOffice Sheet";;
-        presentation) echo "EuroOffice Presentation";; pdf) echo "EuroOffice PDF";;
+        writer) echo "SecureOffice Writer";; sheet) echo "SecureOffice Sheet";;
+        presentation) echo "SecureOffice Presentation";; pdf) echo "SecureOffice PDF";;
     esac
 }
 sample_of() {
@@ -263,7 +263,7 @@ sleep 3
 close_apps
 check_recents "after reinstalling"
 gio open "$DOCS/Sample.odt" >>"$OUT/gio-open.log" 2>&1
-wait_window '^\*?Sample\.odt( .*)? - EuroOffice Writer$' 150 >/dev/null && ok "double-click on Sample.odt opens Writer after reinstall" \
+wait_window '^\*?Sample\.odt( .*)? - SecureOffice Writer$' 150 >/dev/null && ok "double-click on Sample.odt opens Writer after reinstall" \
                                                                     || fail "Sample.odt did not open in Writer after reinstall"
 close_apps
 

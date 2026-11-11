@@ -175,7 +175,7 @@ public:
     static void             initializeApp();
     static void             gotoMainWindow(size_t pw = 0);
     static void             showStartPage(const QString& app_id);
-    // Secure Office Suite: a document of another application (EuroOffice
+    // Secure Office Suite: a document of another application (SecureOffice
     // Writer, Sheet, Presentation, PDF) opens in that application's own
     // process; true when it was handed over
     static bool             routeDocument(const QString& owner, const QStringList& args);

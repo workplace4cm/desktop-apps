@@ -1,7 +1,7 @@
 /*
  * Secure Office Suite: the four applications and their identities
  *
- * EuroOffice Writer, Sheet, Presentation and PDF are separate desktop
+ * SecureOffice Writer, Sheet, Presentation and PDF are separate desktop
  * applications built from one program and one editing engine. Each runs in
  * its own process, started with --app=<id> (or by opening one of its
  * documents), and has its own:
@@ -38,14 +38,14 @@ namespace AppIdentity
     QString current();
     void setCurrent(const QString& id);
 
-    // "EuroOffice Writer"..., "Secure Office Suite" for an empty id
+    // "SecureOffice Writer"..., "Secure Office Suite" for an empty id
     QString name(const QString& id);
     QString name();
 
     // "Writer", "Sheet", "Presentation", "PDF"
     QString shortName(const QString& id);
 
-    // window title: "Report.docx - EuroOffice Writer", or the name alone
+    // window title: "Report.docx - SecureOffice Writer", or the name alone
     QString windowTitle(const QString& document = QString());
 
     // application of a file name extension, a path or a "--new:" kind

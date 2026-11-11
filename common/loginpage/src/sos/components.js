@@ -347,7 +347,7 @@
         };
     };
 
-    // EuroOffice PDF has no blank-document workflow of its own: opening a PDF
+    // SecureOffice PDF has no blank-document workflow of its own: opening a PDF
     // is its first action, so the gallery leads with it.
     const openCard = function (app) {
         return {

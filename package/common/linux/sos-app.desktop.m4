@@ -9,37 +9,37 @@ dnl directly in it.
 Version=1.0
 Type=Application
 ifelse(M4_SOS_APP,`writer',`dnl
-Name=EuroOffice Writer
+Name=SecureOffice Writer
 GenericName=Word Processor
 Comment=Create and edit text documents
 Keywords=Text;Document;Letter;Report;odt;doc;docx;rtf;txt;
 Categories=Office;WordProcessor;
 MimeType=application/msword;application/msword-template;application/vnd.ms-word.document.macroEnabled.12;application/vnd.ms-word.template.macroEnabled.12;application/vnd.openxmlformats-officedocument.wordprocessingml.document;application/vnd.openxmlformats-officedocument.wordprocessingml.template;application/vnd.oasis.opendocument.text;application/vnd.oasis.opendocument.text-flat-xml;application/vnd.oasis.opendocument.text-template;application/vnd.sun.xml.writer;application/vnd.sun.xml.writer.template;application/vnd.apple.pages;application/wps-office.wps;application/wps-office.wpt;application/x-hwp;application/epub+zip;application/x-fictionbook+xml;application/rtf;text/rtf;text/markdown;text/plain;
-StartupWMClass=EuroOffice Writer
+StartupWMClass=SecureOffice Writer
 ',M4_SOS_APP,`sheet',`dnl
-Name=EuroOffice Sheet
+Name=SecureOffice Sheet
 GenericName=Spreadsheet
 Comment=Create and edit spreadsheets
 Keywords=Spreadsheet;Workbook;Table;xls;xlsx;ods;csv;
 Categories=Office;Spreadsheet;
 MimeType=application/vnd.ms-excel;application/vnd.ms-excel.sheet.macroEnabled.12;application/vnd.ms-excel.sheet.binary.macroEnabled.12;application/vnd.ms-excel.template.macroEnabled.12;application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;application/vnd.openxmlformats-officedocument.spreadsheetml.template;application/vnd.oasis.opendocument.spreadsheet;application/vnd.oasis.opendocument.spreadsheet-flat-xml;application/vnd.oasis.opendocument.spreadsheet-template;application/vnd.sun.xml.calc;application/vnd.apple.numbers;application/wps-office.et;application/wps-office.ett;text/csv;text/tab-separated-values;
-StartupWMClass=EuroOffice Sheet
+StartupWMClass=SecureOffice Sheet
 ',M4_SOS_APP,`presentation',`dnl
-Name=EuroOffice Presentation
+Name=SecureOffice Presentation
 GenericName=Presentation
 Comment=Create and edit presentations
 Keywords=Presentation;Slides;ppt;pptx;odp;
 Categories=Office;Presentation;
 MimeType=application/vnd.ms-powerpoint;application/vnd.ms-powerpoint.presentation.macroEnabled.12;application/vnd.ms-powerpoint.slideshow.macroEnabled.12;application/vnd.ms-powerpoint.template.macroEnabled.12;application/vnd.openxmlformats-officedocument.presentationml.presentation;application/vnd.openxmlformats-officedocument.presentationml.slideshow;application/vnd.openxmlformats-officedocument.presentationml.template;application/vnd.oasis.opendocument.presentation;application/vnd.oasis.opendocument.presentation-flat-xml;application/vnd.oasis.opendocument.presentation-template;application/vnd.oasis.opendocument.graphics;application/vnd.sun.xml.impress;application/vnd.apple.keynote;application/wps-office.dps;application/wps-office.dpt;
-StartupWMClass=EuroOffice Presentation
+StartupWMClass=SecureOffice Presentation
 ',`dnl
-Name=EuroOffice PDF
+Name=SecureOffice PDF
 GenericName=PDF Editor
 Comment=View, fill in, annotate and edit PDF documents
 Keywords=PDF;Form;Viewer;Annotate;xps;djvu;
 Categories=Office;Viewer;
 MimeType=application/pdf;application/vnd.ms-xpsdocument;application/oxps;image/vnd.djvu;
-StartupWMClass=EuroOffice PDF
+StartupWMClass=SecureOffice PDF
 ')dnl
 Icon=M4_DESKTOPEDITORS_EXEC-M4_SOS_APP
 TryExec=/usr/bin/M4_DESKTOPEDITORS_EXEC-M4_SOS_APP

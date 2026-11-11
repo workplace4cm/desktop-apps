@@ -117,7 +117,7 @@ int main( int argc, char *argv[] )
     }
 #endif
 
-    // EuroOffice Writer, Sheet, Presentation and PDF are separate
+    // SecureOffice Writer, Sheet, Presentation and PDF are separate
     // applications: this process is the one --app=<id> names, or the one
     // whose documents are on the command line (none: the suite page).
     QStringList cmd_args;

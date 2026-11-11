@@ -1,7 +1,7 @@
 # Secure Office Suite UI framework
 
 Shared building blocks for the Office-style start pages of the suite and its
-four applications: EuroOffice Writer, Sheet, Presentation and PDF.
+four applications: SecureOffice Writer, Sheet, Presentation and PDF.
 
 ## Identity
 
@@ -66,7 +66,7 @@ The recent list of an application shows and clears only its own documents.
 
 ## Launching
 
-EuroOffice Writer, Sheet, Presentation and PDF are four applications: each
+SecureOffice Writer, Sheet, Presentation and PDF are four applications: each
 runs in its own process (`win-linux/src/cappidentity.{h,cpp}`) with its own
 single-instance lock, window title, icon, taskbar identity (Windows
 AppUserModelID, Linux desktop file and WM_CLASS), browser profile and

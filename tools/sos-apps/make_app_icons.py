@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Secure Office Suite: icons of the four applications.
 
-Each application (EuroOffice Writer, Sheet, Presentation, PDF) gets its own
+Each application (SecureOffice Writer, Sheet, Presentation, PDF) gets its own
 icon: a tile in the application's accent colour with a white page showing
 what the application makes, and the suite's plume on top so the four read
 as one family. The plume is taken from the suite icon

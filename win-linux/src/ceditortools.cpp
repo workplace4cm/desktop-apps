@@ -324,19 +324,19 @@ namespace CEditorTools
             _path = sep < 0 ? QString() : _path.mid(sep + 1);
 
             if ( app_id == "writer" )
-                _app_filter = QObject::tr("EuroOffice Writer documents") +
+                _app_filter = QObject::tr("SecureOffice Writer documents") +
                         " (*.docx *.doc *.odt *.rtf *.txt *.docm *.dotx *.dotm *.dot *.ott *.fodt *.html *.htm *.mht *.mhtml *.epub *.fb2 *.md *.xml *.pages *.hwp *.hwpx)";
             else
             if ( app_id == "sheet" )
-                _app_filter = QObject::tr("EuroOffice Sheet workbooks") +
+                _app_filter = QObject::tr("SecureOffice Sheet workbooks") +
                         " (*.xlsx *.xls *.ods *.csv *.xlsm *.xlsb *.xltx *.xltm *.ots *.fods *.tsv *.numbers)";
             else
             if ( app_id == "presentation" )
-                _app_filter = QObject::tr("EuroOffice Presentation files") +
+                _app_filter = QObject::tr("SecureOffice Presentation files") +
                         " (*.pptx *.ppt *.odp *.pptm *.ppsx *.ppsm *.pps *.potx *.potm *.pot *.otp *.fodp *.key)";
             else
             if ( app_id == "pdf" )
-                _app_filter = QObject::tr("EuroOffice PDF documents") + " (*.pdf *.djvu *.djv *.xps *.oxps)";
+                _app_filter = QObject::tr("SecureOffice PDF documents") + " (*.pdf *.djvu *.djv *.xps *.oxps)";
 
             if ( !_app_filter.isEmpty() )
                 _filter = _app_filter + ";;" + CFileDialogWrapper::tr("All files (*.*)");

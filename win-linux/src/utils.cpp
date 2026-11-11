@@ -882,7 +882,7 @@ QByteArray Utils::readStylesheets(const QString& path)
         file.close();
     }
 
-    // the Home button of EuroOffice Writer, Sheet... shows its own icon
+    // the Home button of SecureOffice Writer, Sheet... shows its own icon
     const QString app_icon = AppIdentity::iconResource();
     if ( !app_icon.isEmpty() ) {
         _css.replace(":/tab-icon-light.svg", app_icon.toUtf8());

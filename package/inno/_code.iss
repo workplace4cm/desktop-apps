@@ -213,7 +213,7 @@ begin
   until Length(Text)=0;
 end;
 
-// EuroOffice Writer, Sheet, Presentation and PDF (desktop-apps
+// SecureOffice Writer, Sheet, Presentation and PDF (desktop-apps
 // win-linux/src/cappidentity.cpp gives the running applications the same
 // names and taskbar identities)
 function SosIsApp(app: string): Boolean;
@@ -229,8 +229,8 @@ end;
 
 function SosAppName(app: string): string;
 begin
-  if app = 'pdf' then Result := 'EuroOffice PDF'
-  else if SosIsApp(app) then Result := 'EuroOffice ' + SosAppKey(app)
+  if app = 'pdf' then Result := 'SecureOffice PDF'
+  else if SosIsApp(app) then Result := 'SecureOffice ' + SosAppKey(app)
   else Result := '{#sAppName}';
 end;
 
@@ -300,7 +300,7 @@ begin
 
   SetArrayLength(ExtensionRegistryInfo,  GetArrayLength(AudioExts));
 
-  // ProgID:description:icon index:application (EuroOffice Writer, Sheet,
+  // ProgID:description:icon index:application (SecureOffice Writer, Sheet,
   // Presentation or PDF opens it; suite: none of them)
 
   prefix := '{#ASCC_REG_PREFIX}' + '.';
@@ -474,7 +474,16 @@ end;
 
 //----------
 
-// Default apps: EuroOffice Writer, Sheet, Presentation and PDF are listed
+// versions before 2026-11 named the applications "EuroOffice Writer"...
+procedure SosDeleteLegacyAppNames;
+begin
+  RegDeleteValue(HKEY_LOCAL_MACHINE, 'Software\RegisteredApplications', 'EuroOffice Writer');
+  RegDeleteValue(HKEY_LOCAL_MACHINE, 'Software\RegisteredApplications', 'EuroOffice Sheet');
+  RegDeleteValue(HKEY_LOCAL_MACHINE, 'Software\RegisteredApplications', 'EuroOffice Presentation');
+  RegDeleteValue(HKEY_LOCAL_MACHINE, 'Software\RegisteredApplications', 'EuroOffice PDF');
+end;
+
+// Default apps: SecureOffice Writer, Sheet, Presentation and PDF are listed
 // as four applications, each with the file types it opens
 procedure AddToDefaultPrograms;
 var
@@ -498,6 +507,8 @@ begin
 
       RegWriteStringValue(HKEY_LOCAL_MACHINE, 'Software\RegisteredApplications', SosAppName(apps[a]), capPath);
     end;
+
+    SosDeleteLegacyAppNames;
 
     // the suite itself no longer takes file types
     RegDeleteKeyIncludingSubkeys(HKEY_LOCAL_MACHINE, '{#APP_REG_PATH}\Capabilities');
@@ -641,7 +652,7 @@ begin
         if Length(argsArray[1]) <> 0 then
           RegWriteStringValue(HKEY_LOCAL_MACHINE, 'Software\Classes\' + argsArray[0], '', argsArray[1]);
 
-        // the file type opens in its own application (EuroOffice Writer,
+        // the file type opens in its own application (SecureOffice Writer,
         // Sheet, Presentation or PDF), which also owns its taskbar button
         RegWriteStringValue(HKEY_LOCAL_MACHINE, 'Software\Classes\' + argsArray[0], 'AppUserModelID', SosAppUserModelId(argsArray[3]));
         RegWriteStringValue(HKEY_LOCAL_MACHINE, 'Software\Classes\' + argsArray[0] + '\DefaultIcon', '', ExpandConstant('{app}\{#iconsExe},' + argsArray[2]));
@@ -791,10 +802,11 @@ begin
   RegDeleteKeyIncludingSubkeys(HKEY_LOCAL_MACHINE, '{#APP_REG_PATH}\Capabilities');
   RegDeleteValue(HKEY_LOCAL_MACHINE, 'Software\RegisteredApplications', '{#ASCC_REG_REGISTERED_APP_NAME}');
   RegDeleteKeyIncludingSubkeys(HKEY_LOCAL_MACHINE, '{#APP_REG_PATH}\Apps');
-  RegDeleteValue(HKEY_LOCAL_MACHINE, 'Software\RegisteredApplications', 'EuroOffice Writer');
-  RegDeleteValue(HKEY_LOCAL_MACHINE, 'Software\RegisteredApplications', 'EuroOffice Sheet');
-  RegDeleteValue(HKEY_LOCAL_MACHINE, 'Software\RegisteredApplications', 'EuroOffice Presentation');
-  RegDeleteValue(HKEY_LOCAL_MACHINE, 'Software\RegisteredApplications', 'EuroOffice PDF');
+  RegDeleteValue(HKEY_LOCAL_MACHINE, 'Software\RegisteredApplications', 'SecureOffice Writer');
+  RegDeleteValue(HKEY_LOCAL_MACHINE, 'Software\RegisteredApplications', 'SecureOffice Sheet');
+  RegDeleteValue(HKEY_LOCAL_MACHINE, 'Software\RegisteredApplications', 'SecureOffice Presentation');
+  RegDeleteValue(HKEY_LOCAL_MACHINE, 'Software\RegisteredApplications', 'SecureOffice PDF');
+  SosDeleteLegacyAppNames;
   RegDeleteValue(HKEY_CLASSES_ROOT, 'Local Settings\Software\Microsoft\Windows\Shell\MuiCache', ExpandConstant('{app}\{#iconsExe}'));
 
   RegDeleteKeyIncludingSubkeys(HKEY_LOCAL_MACHINE, ExpandConstant('Software\Classes\.docx\{#ASCC_REG_PREFIX}.Document.12'));

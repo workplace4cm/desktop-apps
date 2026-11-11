@@ -2,7 +2,7 @@
  * Secure Office Suite: recent documents
  *
  * One local service keeps a separate recent list for each application
- * (EuroOffice Writer, Sheet, Presentation and PDF) in the user's profile
+ * (SecureOffice Writer, Sheet, Presentation and PDF) in the user's profile
  * folder, next to the editor engine's own recents.xml:
  *
  *  - documents are registered when they are opened, when a new or
