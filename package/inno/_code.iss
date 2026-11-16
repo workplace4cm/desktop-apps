@@ -1181,6 +1181,14 @@ begin
       // Secure Office Suite never checks for updates online and installs no update service.
       RegWriteDWordValue(HKEY_LOCAL_MACHINE, ExpandConstant('{#APP_REG_PATH}'), 'CheckForUpdates', 0);
     end;
+    // The shortcuts keep their icon paths ({app}\icons\<app>.ico) across
+    // versions, so Explorer would keep showing the previous build's icon
+    // from its cache. Ask the shell to rebuild its icon cache (setup also
+    // sends SHCNE_ASSOCCHANGED, ChangesAssociations=yes). Best effort.
+    if version.Major >= 10 then
+      Exec(ExpandConstant('{sys}\ie4uinit.exe'), '-show', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode)
+    else
+      Exec(ExpandConstant('{sys}\ie4uinit.exe'), '-ClearIconCache', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
     // No copying of an old cache from C:\ProgramData into the profile of the
     // administrator who installs: any user can write in C:\ProgramData, and
     // no version of Secure Office Suite kept its data there.
