@@ -15,7 +15,8 @@ earlier logos used:
 | Editors (web-apps) | `theme/secure-office-suite/assets/img/{about,embed,header}/*.svg` |
 
 The four applications keep their own icons (`win-linux/res/icons/apps`,
-`package/common/linux/icons-apps`, made by `tools/sos-apps/make_app_icons.py`).
+`package/common/linux/icons-apps`, made by `tools/sos-apps/make_app_icons.py`
+from the feather artwork in `tools/sos-apps/feather/`).
 
     python3 -I apply_icons.py <unzipped pack> <folder holding desktop-apps and web-apps> <tmp>
     node render.js <tmp>/jobs.json      # top-bar PNGs, needs Playwright

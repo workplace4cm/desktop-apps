@@ -26,7 +26,10 @@
 #>
 param(
     [Parameter(Mandatory)] [string]$Installer,
-    [Parameter(Mandatory)] [string]$Out
+    [Parameter(Mandatory)] [string]$Out,
+    # the installer was built from this checkout: its icons must equal win-linux\res\icons\apps
+    # (left off when the program files come from an earlier build, as in the quick checks)
+    [switch]$CurrentArtwork
 )
 
 $ErrorActionPreference = 'Continue'
@@ -266,6 +269,17 @@ foreach ($where in @(@{ dir = $startMenu; what = 'Start Menu entry' }, @{ dir = 
 if (Test-Path (Join-Path $startMenu 'Secure Office Suite')) { Fail "the old Start Menu folder is still there" } else { Pass "no suite folder in the Start Menu" }
 $hashes = $Apps.Keys | ForEach-Object { (Get-FileHash (Join-Path $AppDir "icons\$_.ico")).Hash } | Sort-Object -Unique
 if (@($hashes).Count -eq 4) { Pass "four different application icons" } else { Fail "application icons are not all different" }
+# the installed icons are the current artwork (Secure Office feather), not an older build's
+$IconSrc = Join-Path $PSScriptRoot '..\..\win-linux\res\icons\apps'
+if (-not $CurrentArtwork) {
+    Write-Host "NOTE: icon artwork not compared (program files from an earlier build; use -CurrentArtwork)"
+} elseif (Test-Path $IconSrc) {
+    foreach ($app in $Apps.Keys) {
+        $a = (Get-FileHash (Join-Path $AppDir "icons\$app.ico")).Hash
+        $b = (Get-FileHash (Join-Path $IconSrc "$app.ico")).Hash
+        if ($a -eq $b) { Pass "$app.ico is the current artwork" } else { Fail "$app.ico differs from win-linux\res\icons\apps\$app.ico" }
+    }
+}
 
 foreach ($app in $Apps.Keys) {
     Start-Process (Join-Path $startMenu "$($Apps[$app]).lnk")
