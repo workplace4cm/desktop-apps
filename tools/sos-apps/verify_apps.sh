@@ -165,7 +165,11 @@ for app in writer sheet presentation pdf; do
     [ -f "/usr/share/icons/hicolor/256x256/apps/$PREFIX-$app.png" ] && ok "$app icon" || fail "no $app icon"
     # the installed icons are the current ones (Secure Office feather), at every size
     src="$(cd "$(dirname "$0")/../.." && pwd)/package/common/linux/icons-apps/$app"
-    if [ -d "$src" ]; then
+    # only when the package was built from this checkout (CURRENT_ARTWORK=1); the
+    # quick checks install an earlier build's package, which has its own icons
+    if [ "${CURRENT_ARTWORK:-0}" != 1 ]; then
+        echo "NOTE: $app icon artwork not compared (CURRENT_ARTWORK=1 compares it)"
+    elif [ -d "$src" ]; then
         same=1
         for n in 16 24 32 48 64 128 256; do
             cmp -s "$src/${n}x${n}.png" "/usr/share/icons/hicolor/${n}x${n}/apps/$PREFIX-$app.png" || { same=0; echo "differs: ${n}x${n} $app"; }
